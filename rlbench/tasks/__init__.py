@@ -114,6 +114,9 @@ from rlbench.tasks.sweep_to_dustpan_of_size import SweepToDustpanOfSize
 from rlbench.tasks.put_books_at_shelf_location import PutBooksAtShelfLocation
 from rlbench.tasks.set_clock_to_time import SetClockToTime
 
+# analysis tasks
+from rlbench.tasks.open_drawer_test_color import OpenDrawerTestColor
+
 
 FS10_V1 = {
     'train': [

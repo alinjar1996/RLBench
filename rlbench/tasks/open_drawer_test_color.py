@@ -21,8 +21,7 @@ class OpenDrawerTestColor(Task):
         self._waypoint1 = Dummy('waypoint1')
 
     def init_episode(self, index: int) -> List[str]:
-        color_idx = self.DRAWER_COLORS[index]
-        color_name, color_rgb = colors[color_idx]
+        color_name, color_rgb = self.DRAWER_COLORS[color_idx]
 
         drawer_frame = Shape('drawer_frame')
         drawer_top = Shape('drawer_top')

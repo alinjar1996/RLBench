@@ -10,6 +10,8 @@ from rlbench.const import colors
 
 class OpenDrawerTestColor(Task):
 
+    DRAWER_COLORS = [colors[9], colors[10], colors[12]]
+
     def init_task(self) -> None:
         self._options = ['bottom', 'middle', 'top']
         self._anchors = [Dummy('waypoint_anchor_%s' % opt)
@@ -19,7 +21,7 @@ class OpenDrawerTestColor(Task):
         self._waypoint1 = Dummy('waypoint1')
 
     def init_episode(self, index: int) -> List[str]:
-        color_idx = index % self.variation_count()
+        color_idx = self.DRAWER_COLORS[index]
         color_name, color_rgb = colors[color_idx]
 
         drawer_frame = Shape('drawer_frame')

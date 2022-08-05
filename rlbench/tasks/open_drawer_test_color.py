@@ -37,6 +37,8 @@ class OpenDrawerTestColor(Task):
         self._waypoint1.set_position(self._anchors[index].get_position())
         self.register_success_conditions(
             [JointCondition(self._joints[index], 0.15)])
+
+        color_name = ""
         return ['open the %s %s drawer' % (color_name, option),
                 'grip the %s handle and pull the %s %s drawer open' % (
                     option, color_name, option),

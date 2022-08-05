@@ -39,7 +39,7 @@ class OpenDrawerTestColor(Task):
         return ['open the %s %s drawer' % (color_name, option),
                 'grip the %s handle and pull the %s %s drawer open' % (
                     option, color_name, option),
-                'slide the %s %s drawer open' % (color, option)]
+                'slide the %s %s drawer open' % (color_name, option)]
 
     def variation_count(self) -> int:
         return 3

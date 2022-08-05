@@ -19,7 +19,7 @@ class OpenDrawerTestColor(Task):
         self._waypoint1 = Dummy('waypoint1')
 
     def init_episode(self, index: int) -> List[str]:
-        color_idx = np.random.randint(len(colors))
+        color_idx = index % self.variation_count()
         color_name, color_rgb = colors[color_idx]
 
         drawer_frame = Shape('drawer_frame')

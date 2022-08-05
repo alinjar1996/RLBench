@@ -36,10 +36,10 @@ class OpenDrawerTestColor(Task):
         self._waypoint1.set_position(self._anchors[index].get_position())
         self.register_success_conditions(
             [JointCondition(self._joints[index], 0.15)])
-        return ['open the %s drawer' % option,
-                'grip the %s handle and pull the %s drawer open' % (
-                    option, option),
-                'slide the %s drawer open' % option]
+        return ['open the %s %s drawer' % (color_name, option),
+                'grip the %s handle and pull the %s %s drawer open' % (
+                    option, color_name, option),
+                'slide the %s %s drawer open' % (color, option)]
 
     def variation_count(self) -> int:
         return 3

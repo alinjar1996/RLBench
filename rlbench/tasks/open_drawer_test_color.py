@@ -10,7 +10,7 @@ from rlbench.const import colors
 
 class OpenDrawerTestColor(Task):
 
-    DRAWER_COLORS = [colors[9], colors[10], colors[12]]
+    DRAWER_COLORS = [colors[0], colors[3], colors[4]]
 
     def init_task(self) -> None:
         self._options = ['bottom', 'middle', 'top']

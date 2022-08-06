@@ -29,9 +29,9 @@ class OpenDrawerTestColor(Task):
         drawer_bottom = Shape('drawer_bottom')
 
         drawer_frame.set_color(color_rgb)
-        drawer_top.set_color(color_rgb)
-        drawer_middle.set_color(color_rgb)
-        drawer_bottom.set_color(color_rgb)
+        # drawer_top.set_color(color_rgb)
+        # drawer_middle.set_color(color_rgb)
+        # drawer_bottom.set_color(color_rgb)
 
         option = self._options[index]
         self._waypoint1.set_position(self._anchors[index].get_position())

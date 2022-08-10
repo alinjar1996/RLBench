@@ -119,6 +119,7 @@ from rlbench.tasks.open_drawer_test_color_frame import OpenDrawerTestColorFrame
 from rlbench.tasks.open_drawer_test_color_full import OpenDrawerTestColorFull
 
 from rlbench.tasks.open_drawer_test_texture_frame import OpenDrawerTestTextureFrame
+from rlbench.tasks.open_drawer_test_texture_full import OpenDrawerTestTextureFull
 
 
 FS10_V1 = {

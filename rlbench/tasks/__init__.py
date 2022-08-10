@@ -116,6 +116,7 @@ from rlbench.tasks.set_clock_to_time import SetClockToTime
 
 # analysis tasks
 from rlbench.tasks.open_drawer_test_color_frame import OpenDrawerTestColorFrame
+from rlbench.tasks.open_drawer_test_color_full import OpenDrawerTestColorFull
 
 
 FS10_V1 = {

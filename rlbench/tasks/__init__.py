@@ -118,6 +118,8 @@ from rlbench.tasks.set_clock_to_time import SetClockToTime
 from rlbench.tasks.open_drawer_test_color_frame import OpenDrawerTestColorFrame
 from rlbench.tasks.open_drawer_test_color_full import OpenDrawerTestColorFull
 
+from rlbench.tasks.open_drawer_test_texture_frame import OpenDrawerTestTextureFrame
+
 
 FS10_V1 = {
     'train': [

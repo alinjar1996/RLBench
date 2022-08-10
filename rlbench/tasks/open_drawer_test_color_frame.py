@@ -8,9 +8,7 @@ from rlbench.backend.task import Task
 from rlbench.const import colors
 
 
-class OpenDrawerTestColor(Task):
-
-    DRAWER_COLORS = [colors[2], colors[2], colors[2]]
+class OpenDrawerTestColorFrame(Task):
 
     def init_task(self) -> None:
         self._options = ['bottom', 'middle', 'top']
@@ -21,7 +19,8 @@ class OpenDrawerTestColor(Task):
         self._waypoint1 = Dummy('waypoint1')
 
     def init_episode(self, index: int) -> List[str]:
-        color_name, color_rgb = self.DRAWER_COLORS[index]
+        color_idx = np.random.randint(len(colors))
+        color_name, color_rgb = colors[color_idx]
 
         drawer_frame = Shape('drawer_frame')
         drawer_top = Shape('drawer_top')
@@ -38,11 +37,10 @@ class OpenDrawerTestColor(Task):
         self.register_success_conditions(
             [JointCondition(self._joints[index], 0.15)])
 
-        color_name = ""
-        return ['open the %s %s drawer' % (color_name, option),
-                'grip the %s handle and pull the %s %s drawer open' % (
-                    option, color_name, option),
-                'slide the %s %s drawer open' % (color_name, option)]
+        return ['open the %s drawer' % (option),
+                'grip the %s handle and pull the %s drawer open' % (
+                    option, option),
+                'slide the %s drawer open' % (option)]
 
     def variation_count(self) -> int:
         return 3

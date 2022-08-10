@@ -115,7 +115,7 @@ from rlbench.tasks.put_books_at_shelf_location import PutBooksAtShelfLocation
 from rlbench.tasks.set_clock_to_time import SetClockToTime
 
 # analysis tasks
-from rlbench.tasks.open_drawer_test_color import OpenDrawerTestColor
+from rlbench.tasks.open_drawer_test_color_frame import OpenDrawerTestColorFrame
 
 
 FS10_V1 = {

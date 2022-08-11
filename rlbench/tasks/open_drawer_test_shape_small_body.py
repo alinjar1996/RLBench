@@ -27,7 +27,7 @@ class OpenDrawerTestShapeSmallBody(Task):
                 'slide the %s drawer open' % option]
 
     def variation_count(self) -> int:
-        return 3
+        return 2
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

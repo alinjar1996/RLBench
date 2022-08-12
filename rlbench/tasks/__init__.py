@@ -121,6 +121,8 @@ from rlbench.tasks.open_drawer_test_texture_frame import OpenDrawerTestTextureFr
 from rlbench.tasks.open_drawer_test_texture_full import OpenDrawerTestTextureFull
 
 from rlbench.tasks.open_drawer_test_shape_small_body import OpenDrawerTestShapeSmallBody
+from rlbench.tasks.open_drawer_test_shape_square_handles import OpenDrawerTestShapeSquareHandles
+from rlbench.tasks.open_drawer_test_shape_large_handles import OpenDrawerTestShapeLargeHandles
 
 
 FS10_V1 = {

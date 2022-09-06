@@ -96,18 +96,18 @@ def float_array_to_rgb_image(float_array,
   int_array = scaled_array.astype(np.uint32)
   # Calculate:
   #   r = (f / 256) / 256  high byte
-  #   g = (f / 256) % 256  middle byte
-  #   b = f % 256          low byte
+  #   g = (f / 256) % 255  middle byte
+  #   b = f % 255          low byte
   rg = np.divide(int_array, 256)
   r = np.divide(rg, 256)
-  g = np.mod(rg, 256)
+  g = np.mod(rg, 255)
   image_shape = int_array.shape
   rgb_array = np.zeros((image_shape[0], image_shape[1], 3), dtype=np.uint8)
   rgb_array[..., 0] = r
   rgb_array[..., 1] = g
   if not drop_blue:
     # Calculate the blue channel and add it to the array.
-    b = np.mod(int_array, 256)
+    b = np.mod(int_array, 255)
     rgb_array[..., 2] = b
   image_mode = 'RGB'
   image = Image.fromarray(rgb_array, mode=image_mode)

@@ -11,6 +11,8 @@ from rlbench import utils
 from rlbench.action_modes.action_mode import ActionMode
 from rlbench.backend.const import *
 from rlbench.backend.robot import Robot
+from rlbench.backend.robot import UnimanualRobot
+
 from rlbench.backend.scene import Scene
 from rlbench.backend.task import Task
 from rlbench.const import SUPPORTED_ROBOTS
@@ -107,10 +109,12 @@ class Environment(object):
             self._pyrep.import_model(arm_path)
             arm, gripper = arm_class(), gripper_class()
             arm.set_position(panda_pos)
+            self._robot = UnimanualRobot(arm, gripper)
         else:
             arm, gripper = arm_class(), gripper_class()
+            self._robot = UnimanualRobot(arm, gripper)
 
-        self._robot = Robot(arm, gripper)
+
         if self._randomize_every is None:
             self._scene = Scene(
                 self._pyrep, self._robot, self._obs_config, self._robot_setup)

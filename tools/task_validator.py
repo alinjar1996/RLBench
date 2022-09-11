@@ -9,6 +9,7 @@ from rlbench.backend.scene import Scene
 from rlbench.backend.utils import task_file_to_task_class
 from rlbench.backend.task import TASKS_PATH
 from rlbench.backend.robot import Robot
+from rlbench.backend.robot import UnimanualRobot
 import numpy as np
 import os
 import argparse
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     sim.step_ui()
     sim.start()
 
-    robot = Robot(Panda(), PandaGripper())
+    robot = UnimanualRobot(Panda(), PandaGripper())
 
     active_task = task_class(sim, robot)
     obs = ObservationConfig()

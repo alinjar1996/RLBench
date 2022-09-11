@@ -12,6 +12,8 @@ from rlbench.backend.exceptions import (
     WaypointError, BoundaryError, NoWaypointsError, DemoError)
 from rlbench.backend.observation import Observation
 from rlbench.backend.robot import Robot
+
+from rlbench.backend.robot import UnimanualRobot
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from rlbench.backend.task import Task
 from rlbench.backend.utils import rgb_handles_to_mask

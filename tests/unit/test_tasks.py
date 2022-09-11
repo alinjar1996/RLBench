@@ -10,6 +10,7 @@ from tools.task_validator import task_smoke, TaskValidationError
 from rlbench.observation_config import ObservationConfig
 from rlbench.backend.scene import Scene
 from rlbench.backend.robot import Robot
+from rlbench.backend.robot import UnimanualRobot
 
 
 TASKS = [t for t in os.listdir(task.TASKS_PATH)
@@ -33,7 +34,7 @@ class TestTasks(unittest.TestCase):
         sim.set_simulation_timestep(50.0)
         sim.step_ui()
         sim.start()
-        robot = Robot(Panda(), PandaGripper())
+        robot = UnimanualRobot(Panda(), PandaGripper())
         obs = ObservationConfig()
         obs.set_all(False)
         scene = Scene(sim, robot, obs)

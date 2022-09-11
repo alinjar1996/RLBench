@@ -12,6 +12,14 @@ class Robot(ABC):
     def release_gripper(self):
         pass
 
+    @abstractmethod
+    def is_in_collision(self):
+        pass
+    
+    @abstractmethod
+    def zero_velocity(self):
+        pass
+
 class UnimanualRobot(Robot):
 
     def __init__(self, arm: Arm, gripper: Gripper):
@@ -23,6 +31,14 @@ class UnimanualRobot(Robot):
 
     def initial_state(self):
         return [self.arm.get_configuration_tree(), self.gripper.get_configuration_tree()]
+
+    def is_in_collision(self):
+        return self.arm.check_arm_collision()
+
+    def zero_velocity(self):
+        self.arm.set_joint_target_velocities([0] * len(self.arm.joints))
+        self.gripper.set_joint_target_velocities([0] * len(self.gripper.joints))
+
 
         
 

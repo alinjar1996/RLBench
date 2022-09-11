@@ -101,7 +101,7 @@ class Scene(object):
     def unload(self) -> None:
         """Clears the scene. i.e. removes all tasks. """
         if self.task is not None:
-            self.robot.gripper.release()
+            self.robot.release_gripper()
             if self._has_init_task:
                 self.task.cleanup_()
             self.task.unload()
@@ -133,7 +133,7 @@ class Scene(object):
                 if (randomly_place and
                         not self.task.is_static_workspace()):
                     self._place_task()
-                    if self.robot.arm.check_arm_collision():
+                    if self.robot.is_in_collision():
                         raise BoundaryError()
                 self.task.validate()
                 break
@@ -151,18 +151,17 @@ class Scene(object):
 
     def reset(self) -> None:
         """Resets the joint angles. """
-        self.robot.gripper.release()
+
+        self.robot.release_gripper()
 
         arm, gripper = self._initial_robot_state
         self.pyrep.set_configuration_tree(arm)
         self.pyrep.set_configuration_tree(gripper)
         self.robot.arm.set_joint_positions(self._start_arm_joint_pos, disable_dynamics=True)
-        self.robot.arm.set_joint_target_velocities(
-            [0] * len(self.robot.arm.joints))
         self.robot.gripper.set_joint_positions(
             self._starting_gripper_joint_pos, disable_dynamics=True)
-        self.robot.gripper.set_joint_target_velocities(
-            [0] * len(self.robot.gripper.joints))
+
+        self.robot.zero_velocity()
 
         if self.task is not None and self._has_init_task:
             self.task.cleanup_()
@@ -385,7 +384,7 @@ class Scene(object):
                     start_of_bracket = -1
                     gripper = self.robot.gripper
                     if 'open_gripper(' in ext:
-                        gripper.release()
+                        self.robot.release_gripper()
                         start_of_bracket = ext.index('open_gripper(') + 13
                         contains_param = ext[start_of_bracket] != ')'
                         if not contains_param:

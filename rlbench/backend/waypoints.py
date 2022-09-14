@@ -2,15 +2,19 @@ from pyrep.const import ConfigurationPathAlgorithms as Algos
 from pyrep.objects.object import Object
 from pyrep.robots.configuration_paths.arm_configuration_path import (
     ArmConfigurationPath)
-from rlbench.backend.robot import Robot
+
+from pyrep.robots.arms.arm import Arm
+
+from absl import logging
+
 
 
 class Waypoint(object):
 
-    def __init__(self, waypoint: Object, robot: Robot, ignore_collisions=False,
+    def __init__(self, waypoint: Object, arm: Arm, ignore_collisions=False,
                  start_of_path_func=None, end_of_path_func=None):
         self._waypoint = waypoint
-        self._robot = robot
+        self._arm = arm
         self._ext = waypoint.get_extension_string()
         self._ignore_collisions = ignore_collisions
         self._linear_only = False
@@ -45,14 +49,13 @@ class Waypoint(object):
 class Point(Waypoint):
 
     def get_path(self, ignore_collisions=False) -> ArmConfigurationPath:
-        arm = self._robot.arm
         if self._linear_only:
-            path = arm.get_linear_path(self._waypoint.get_position(),
+            path = self._arm.get_linear_path(self._waypoint.get_position(),
                                 euler=self._waypoint.get_orientation(),
                                 ignore_collisions=(self._ignore_collisions or
                                                    ignore_collisions))
         else:
-            path = arm.get_path(self._waypoint.get_position(),
+            path = self._arm.get_path(self._waypoint.get_position(),
                                 euler=self._waypoint.get_orientation(),
                                 ignore_collisions=(self._ignore_collisions or
                                                    ignore_collisions),
@@ -66,6 +69,5 @@ class Point(Waypoint):
 class PredefinedPath(Waypoint):
 
     def get_path(self, ignore_collisions=False) -> ArmConfigurationPath:
-        arm = self._robot.arm
-        path = arm.get_path_from_cartesian_path(self._waypoint)
+        path = self._arm.get_path_from_cartesian_path(self._waypoint)
         return path

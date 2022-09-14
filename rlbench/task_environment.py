@@ -1,4 +1,4 @@
-import logging
+from absl import logging
 from typing import List, Callable
 
 import numpy as np
@@ -9,7 +9,7 @@ from rlbench.action_modes.action_mode import ActionMode
 from rlbench.backend.exceptions import BoundaryError, WaypointError, \
     TaskEnvironmentError
 from rlbench.backend.observation import Observation
-from rlbench.backend.robot import Robot
+from rlbench.backend.robot import Robot, UnimanualRobot, BimanualRobot
 from rlbench.backend.scene import Scene
 from rlbench.backend.task import Task
 from rlbench.demo import Demo
@@ -48,8 +48,11 @@ class TaskEnvironment(object):
 
         self._scene.load(self._task)
         self._pyrep.start()
-        self._robot_shapes = self._robot.arm.get_objects_in_tree(
-            object_type=ObjectType.SHAPE)
+
+        if isinstance(self._robot, UnimanualRobot):
+            self._robot_shapes = self._robot.arm.get_objects_in_tree(object_type=ObjectType.SHAPE)
+        elif isinstance(self._robot, BimanualRobot):
+            self._robot_shapes = self._robot.right_arm.get_objects_in_tree(object_type=ObjectType.SHAPE)
 
     def get_name(self) -> str:
         return self._task.get_name()
@@ -124,12 +127,22 @@ class TaskEnvironment(object):
                 amount, image_paths, self._dataset_root, self._variation_number,
                 self._task.get_name(), self._obs_config,
                 random_selection, from_episode_number)
-        else:
+        elif isinstance(self._robot, UnimanualRobot):
             ctr_loop = self._robot.arm.joints[0].is_control_loop_enabled()
             self._robot.arm.set_control_loop_enabled(True)
             demos = self._get_live_demos(
                 amount, callable_each_step, max_attempts)
             self._robot.arm.set_control_loop_enabled(ctr_loop)
+        elif isinstance(self._robot, BimanualRobot):
+            ctr_loop_right = self._robot.right_arm.joints[0].is_control_loop_enabled()
+            ctr_loop_left = self._robot.left_arm.joints[0].is_control_loop_enabled()
+            self._robot.right_arm.set_control_loop_enabled(True)
+            self._robot.left_arm.set_control_loop_enabled(True)
+            demos = self._get_live_demos(
+                amount, callable_each_step, max_attempts)
+            self._robot.right_arm.set_control_loop_enabled(ctr_loop_right)
+            self._robot.left_arm.set_control_loop_enabled(ctr_loop_left)
+
         return demos
 
     def _get_live_demos(self, amount: int,

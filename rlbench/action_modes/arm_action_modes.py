@@ -8,6 +8,8 @@ from pyrep.const import ObjectType
 
 from rlbench.backend.exceptions import InvalidActionError
 from rlbench.backend.robot import Robot
+from rlbench.backend.robot import UnimanualRobot
+from rlbench.backend.robot import BimanualRobot
 from rlbench.backend.scene import Scene
 from rlbench.const import SUPPORTED_ROBOTS
 
@@ -45,7 +47,12 @@ class ArmActionMode(object):
         pass
 
     def set_control_mode(self, robot: Robot):
-        robot.arm.set_control_loop_enabled(True)
+        if isinstance(robot, UnimanualRobot):
+            robot.arm.set_control_loop_enabled(True)
+        elif isinstance(robot, BimanualRobot):
+            robot.right_arm.set_control_loop_enabled(True)
+            robot.left_arm.set_control_loop_enabled(True)
+            
 
 
 class JointVelocity(ArmActionMode):
@@ -64,8 +71,17 @@ class JointVelocity(ArmActionMode):
         return SUPPORTED_ROBOTS[scene.robot_setup][2],
 
     def set_control_mode(self, robot: Robot):
-        robot.arm.set_control_loop_enabled(False)
-        robot.arm.set_motor_locked_at_zero_velocity(True)
+
+        if isinstance(robot, UnimanualRobot):
+            robot.arm.set_control_loop_enabled(False)
+            robot.arm.set_motor_locked_at_zero_velocity(True)
+
+        elif isinstance(robot, BimanualRobot):
+            robot.right_arm.set_control_loop_enabled(False)
+            robot.right_arm.set_motor_locked_at_zero_velocity(True)
+            robot.left_arm.set_control_loop_enabled(False)
+            robot.left_arm.set_motor_locked_at_zero_velocity(True)
+
 
 
 class JointPosition(ArmActionMode):

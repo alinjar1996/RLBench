@@ -7,6 +7,7 @@ from pyrep.errors import ConfigurationPathError
 from pyrep.objects import Dummy
 from pyrep.objects.shape import Shape
 from pyrep.objects.vision_sensor import VisionSensor
+from pyrep.robots.arms.dual_panda import PandaLeft, PandaRight
 
 from rlbench.backend.exceptions import (
     WaypointError, BoundaryError, NoWaypointsError, DemoError)
@@ -14,6 +15,7 @@ from rlbench.backend.observation import Observation
 from rlbench.backend.robot import Robot
 
 from rlbench.backend.robot import UnimanualRobot
+from rlbench.backend.robot import BimanualRobot
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from rlbench.backend.task import Task
 from rlbench.backend.utils import rgb_handles_to_mask
@@ -22,6 +24,8 @@ from rlbench.noise_model import NoiseModel
 from rlbench.observation_config import ObservationConfig, CameraConfig
 
 STEPS_BEFORE_EPISODE_START = 10
+
+from absl import logging
 
 
 class Scene(object):
@@ -154,19 +158,41 @@ class Scene(object):
 
         self.robot.release_gripper()
 
-        arm, gripper = self._initial_robot_state
+
+
+        if isinstance(self.robot, UnimanualRobot):
+            self.reset_unimanual()
+        elif isinstance(self.robot, BimanualRobot):
+            self.reset_bimanual()
+
+        self.robot.zero_velocity()
+        
+        if self.task is not None and self._has_init_task:
+            self.task.cleanup_()
+            self.task.restore_state(self._initial_task_state)
+        self.task.set_initial_objects_in_scene()
+
+    def reset_unimanual(self) -> None:
+        arm, gripper = self._initial_robot_state   
         self.pyrep.set_configuration_tree(arm)
         self.pyrep.set_configuration_tree(gripper)
         self.robot.arm.set_joint_positions(self._start_arm_joint_pos, disable_dynamics=True)
         self.robot.gripper.set_joint_positions(
             self._starting_gripper_joint_pos, disable_dynamics=True)
 
-        self.robot.zero_velocity()
 
-        if self.task is not None and self._has_init_task:
-            self.task.cleanup_()
-            self.task.restore_state(self._initial_task_state)
-        self.task.set_initial_objects_in_scene()
+    def reset_bimanual(self) -> None:
+
+        for arm, gripper in self._initial_robot_state:        
+            self.pyrep.set_configuration_tree(arm)
+            self.pyrep.set_configuration_tree(gripper)
+        
+        self.robot.right_arm.set_joint_positions(self._start_arm_joint_pos[0], disable_dynamics=True)
+        self.robot.right_gripper.set_joint_positions(self._starting_gripper_joint_pos[0], disable_dynamics=True)
+
+        self.robot.left_arm.set_joint_positions(self._start_arm_joint_pos[1], disable_dynamics=True)
+        self.robot.left_gripper.set_joint_positions(self._starting_gripper_joint_pos[1], disable_dynamics=True)
+
 
     def get_observation(self) -> Observation:
         tip = self.robot.arm.get_tip()
@@ -382,15 +408,15 @@ class Scene(object):
                 if len(ext) > 0:
                     contains_param = False
                     start_of_bracket = -1
-                    gripper = self.robot.gripper
+                    name = ext.split('_', maxsplit=1)[0]
                     if 'open_gripper(' in ext:
-                        self.robot.release_gripper()
+                        self.robot.release_gripper(name)
                         start_of_bracket = ext.index('open_gripper(') + 13
                         contains_param = ext[start_of_bracket] != ')'
                         if not contains_param:
                             done = False
                             while not done:
-                                done = gripper.actuate(1.0, 0.04)
+                                done = self.robot.actutate_gripper(1.0, 0.04, name)
                                 self.pyrep.step()
                                 self.task.step()
                                 if self._obs_config.record_gripper_closing:
@@ -402,7 +428,7 @@ class Scene(object):
                         if not contains_param:
                             done = False
                             while not done:
-                                done = gripper.actuate(0.0, 0.04)
+                                done = self.robot.actutate_gripper(0.0, 0.04, name)
                                 self.pyrep.step()
                                 self.task.step()
                                 if self._obs_config.record_gripper_closing:
@@ -414,7 +440,7 @@ class Scene(object):
                         num = float(rest[:rest.index(')')])
                         done = False
                         while not done:
-                            done = gripper.actuate(num, 0.04)
+                            done = self.robot.actutate_gripper(num, 0.04, name)
                             self.pyrep.step()
                             self.task.step()
                             if self._obs_config.record_gripper_closing:
@@ -423,7 +449,7 @@ class Scene(object):
 
                     if 'close_gripper(' in ext:
                         for g_obj in self.task.get_graspable_objects():
-                            gripper.grasp(g_obj)
+                            self.robot.grasp(g_obj, name)
 
                     self._demo_record_step(demo, record, callable_each_step)
 

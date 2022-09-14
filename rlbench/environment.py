@@ -6,13 +6,18 @@ import pickle
 from pyrep import PyRep
 from pyrep.objects import VisionSensor
 from pyrep.robots.arms.panda import Panda
+from pyrep.robots.end_effectors.panda_gripper import PandaGripper
+from pyrep.robots.arms.dual_panda import PandaLeft
+from pyrep.robots.arms.dual_panda import PandaRight
+from pyrep.robots.end_effectors.dual_panda_gripper import PandaGripperRight
+from pyrep.robots.end_effectors.dual_panda_gripper import PandaGripperLeft
 
 from rlbench import utils
 from rlbench.action_modes.action_mode import ActionMode
 from rlbench.backend.const import *
 from rlbench.backend.robot import Robot
 from rlbench.backend.robot import UnimanualRobot
-
+from rlbench.backend.robot import BimanualRobot
 from rlbench.backend.scene import Scene
 from rlbench.backend.task import Task
 from rlbench.const import SUPPORTED_ROBOTS
@@ -99,8 +104,30 @@ class Environment(object):
         arm_class, gripper_class, _ = SUPPORTED_ROBOTS[
             self._robot_setup]
 
+
+        if self._robot_setup == 'dual_panda':
+           
+            panda_arm = Panda()
+            panda_pos = panda_arm.get_position()
+            panda_arm.remove()
+
+            from pyrep.objects.dummy import Dummy
+            #arm = Dummy('DualPanda')
+            #arm.set_position(panda_pos)
+
+            right_arm = PandaRight()
+            left_arm = PandaLeft()
+
+            left_arm.set_position(panda_pos)
+            right_arm.set_position(panda_pos)
+
+            right_gripper = PandaGripperRight()
+            left_gripper = PandaGripperLeft()
+
+            self._robot = BimanualRobot(right_arm, right_gripper, left_arm, left_gripper)
+
         # We assume the panda is already loaded in the scene.
-        if self._robot_setup != 'panda':
+        elif self._robot_setup != 'panda':
             # Remove the panda from the scene
             panda_arm = Panda()
             panda_pos = panda_arm.get_position()
@@ -137,7 +164,6 @@ class Environment(object):
         # If user hasn't called launch, implicitly call it.
         if self._pyrep is None:
             self.launch()
-
         self._scene.unload()
         task = task_class(self._pyrep, self._robot)
         self._prev_task = task

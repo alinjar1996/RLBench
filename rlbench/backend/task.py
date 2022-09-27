@@ -355,7 +355,6 @@ class Task(object):
     #####################
     # Private functions #
     #####################
-
     def _feasible(self, waypoints: List[Point]) -> Tuple[bool, int]:
         if isinstance(self.robot, UnimanualRobot):
             arm = self.robot.arm
@@ -364,6 +363,8 @@ class Task(object):
         elif isinstance(self.robot, BimanualRobot):
             way_points_right = [w for w in waypoints if isinstance(w._arm, PandaRight)]
             way_points_left = [w for w in waypoints if isinstance(w._arm, PandaLeft)]
+
+            logging.info("total waypoints %s, (right=%s, left=%s)", len(waypoints), len(way_points_right), len(way_points_left))
 
             f_right = self._feasible_with_arm(self.robot.right_arm, way_points_right)
             f_left = self._feasible_with_arm(self.robot.left_arm, way_points_left)
@@ -404,7 +405,9 @@ class Task(object):
                 break
             ob_type = Object.get_object_type(name)
             way = None
+
             if ob_type == ObjectType.DUMMY:
+                
                 waypoint = Dummy(name)
                 start_func = None
                 end_func = None
@@ -419,7 +422,10 @@ class Task(object):
                             end_of_path_func=end_func)
                 elif isinstance(self.robot, BimanualRobot):
                     waypoint_mapping = self.waypoint_mapping[name]
+                    logging.debug("mapping waypoint %s to %s", name, waypoint_mapping)
                     arms = self.robot.get_arms_by_name(waypoint_mapping)
+                    if not arms:
+                        logging.warning("unable to get arm for waypoint %s", name)
                     for arm in arms:
                         way = Point(waypoint, arm,
                                     start_of_path_func=start_func,
@@ -449,3 +455,12 @@ class Task(object):
 
 
 
+from absl import logging
+class BimanualTask(Task):
+
+    def __init__(self, pyrep: PyRep, robot: Robot, name: str = None):
+        if not isinstance(robot, BimanualRobot):
+            logging.error("tasks requires a bimanual robot")
+        super().__init__(pyrep, robot, name)
+
+        

@@ -14,6 +14,7 @@ from rlbench.backend.exceptions import (
 from rlbench.backend.observation import Observation
 from rlbench.backend.robot import Robot
 
+from rlbench.backend.robot import Robot
 from rlbench.backend.robot import UnimanualRobot
 from rlbench.backend.robot import BimanualRobot
 from rlbench.backend.spawn_boundary import SpawnBoundary
@@ -158,12 +159,10 @@ class Scene(object):
 
         self.robot.release_gripper()
 
-
-
-        if isinstance(self.robot, UnimanualRobot):
-            self.reset_unimanual()
-        elif isinstance(self.robot, BimanualRobot):
+        if self.robot.is_bimanual:
             self.reset_bimanual()
+        else:
+            self.reset_unimanual()
 
         self.robot.zero_velocity()
         

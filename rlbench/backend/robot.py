@@ -13,6 +13,11 @@ class Robot(ABC):
 
     @property
     @abstractmethod
+    def is_bimanual(self):
+        pass
+
+    @property
+    @abstractmethod
     def initial_state(self):
         pass
 
@@ -62,6 +67,11 @@ class UnimanualRobot(Robot):
 
     def grasp(self, obj: Object, name: str = None):
         return self.gripper.grasp(obj)
+
+    @Robot.is_bimanual.getter
+    def is_bimanual(self):
+        return False
+    
 
 class BimanualRobot(Robot):
 
@@ -127,3 +137,8 @@ class BimanualRobot(Robot):
             logging.warn("not fully implemented yet.")
             self.right_gripper.grasp(obj)
             return self.left_gripper.grasp(obj)
+
+
+    @Robot.is_bimanual.getter
+    def is_bimanual(self):
+        return True

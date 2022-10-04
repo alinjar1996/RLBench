@@ -127,13 +127,13 @@ class TaskEnvironment(object):
                 amount, image_paths, self._dataset_root, self._variation_number,
                 self._task.get_name(), self._obs_config,
                 random_selection, from_episode_number)
-        elif isinstance(self._robot, UnimanualRobot):
+        elif not self._robot.is_bimanual:
             ctr_loop = self._robot.arm.joints[0].is_control_loop_enabled()
             self._robot.arm.set_control_loop_enabled(True)
             demos = self._get_live_demos(
                 amount, callable_each_step, max_attempts)
             self._robot.arm.set_control_loop_enabled(ctr_loop)
-        elif isinstance(self._robot, BimanualRobot):
+        elif self._robot.is_bimanual:
             ctr_loop_right = self._robot.right_arm.joints[0].is_control_loop_enabled()
             ctr_loop_left = self._robot.left_arm.joints[0].is_control_loop_enabled()
             self._robot.right_arm.set_control_loop_enabled(True)

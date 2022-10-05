@@ -9,6 +9,7 @@ from rlbench.action_modes.gripper_action_modes import Discrete
 from rlbench.backend.exceptions import BoundaryError, InvalidActionError, TaskEnvironmentError, WaypointError
 from rlbench.backend.utils import task_file_to_task_class
 from rlbench.environment import Environment
+from rlbench.backend.task import BimanualTask
 import rlbench.backend.task as task
 
 import os
@@ -184,9 +185,17 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
         obs_config.wrist_camera.render_mode = RenderMode.OPENGL
         obs_config.front_camera.render_mode = RenderMode.OPENGL
 
+
+    # ..todo:: we need to actuall check all tasks
+    if issubclass(tasks[0], BimanualTask):
+        robot_setup = 'dual_panda'
+    else:
+        robot_setup = 'panda'
+
     rlbench_env = Environment(
         action_mode=MoveArmThenGripper(JointVelocity(), Discrete()),
         obs_config=obs_config,
+        robot_setup=robot_setup,
         headless=True)
     rlbench_env.launch()
 
@@ -312,9 +321,16 @@ def run_all_variations(i, lock, task_index, variation_count, results, file_lock,
         obs_config.wrist_camera.render_mode = RenderMode.OPENGL
         obs_config.front_camera.render_mode = RenderMode.OPENGL
 
+
+    if issubclass(tasks[0], BimanualTask):
+        robot_setup = 'dual_panda'
+    else:
+        robot_setup = 'panda'
+
     rlbench_env = Environment(
         action_mode=MoveArmThenGripper(JointVelocity(), Discrete()),
         obs_config=obs_config,
+        robot_setup=robot_setup,
         headless=True)
     rlbench_env.launch()
 

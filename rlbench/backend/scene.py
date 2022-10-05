@@ -7,12 +7,16 @@ from pyrep.errors import ConfigurationPathError
 from pyrep.objects import Dummy
 from pyrep.objects.shape import Shape
 from pyrep.objects.vision_sensor import VisionSensor
+from pyrep.robots.arms.arm import Arm
 from pyrep.robots.arms.dual_panda import PandaLeft, PandaRight
+from pyrep.robots.end_effectors.gripper import Gripper
 
 from rlbench.backend.exceptions import (
     WaypointError, BoundaryError, NoWaypointsError, DemoError)
 from rlbench.backend.observation import Observation
-from rlbench.backend.robot import Robot
+from rlbench.backend.observation import UnimodalObservationData
+from rlbench.backend.observation import UnimodalObservation
+from rlbench.backend.observation import BimanualObservation
 
 from rlbench.backend.robot import Robot
 from rlbench.backend.robot import UnimanualRobot
@@ -194,22 +198,8 @@ class Scene(object):
 
 
     def get_observation(self) -> Observation:
-        tip = self.robot.arm.get_tip()
 
-        joint_forces = None
-        if self._obs_config.joint_forces:
-            fs = self.robot.arm.get_joint_forces()
-            vels = self.robot.arm.get_joint_target_velocities()
-            joint_forces = self._obs_config.joint_forces_noise.apply(
-                np.array([-f if v < 0 else f for f, v in zip(fs, vels)]))
-
-        ee_forces_flat = None
-        if self._obs_config.gripper_touch_forces:
-            ee_forces = self.robot.gripper.get_touch_sensor_forces()
-            ee_forces_flat = []
-            for eef in ee_forces:
-                ee_forces_flat.extend(eef)
-            ee_forces_flat = np.array(ee_forces_flat)
+        observation_data = {}
 
         lsc_ob = self._obs_config.left_shoulder_camera
         rsc_ob = self._obs_config.right_shoulder_camera
@@ -280,60 +270,131 @@ class Scene(object):
                               wc_mask_fn) if wc_ob.mask else None
         front_mask = get_mask(self._cam_front_mask,
                               fc_mask_fn) if fc_ob.mask else None
+    
+        observation_data.update({
+            "left_shoulder_rgb": left_shoulder_rgb,
+            "left_shoulder_depth": left_shoulder_depth,
+            "left_shoulder_point_cloud": left_shoulder_pcd,
+            "right_shoulder_rgb": right_shoulder_rgb,
+            "right_shoulder_depth": right_shoulder_depth,
+            "right_shoulder_point_cloud": right_shoulder_pcd,
+            "overhead_rgb": overhead_rgb,
+            "overhead_depth": overhead_depth,
+            "overhead_point_cloud": overhead_pcd,
+            "wrist_rgb": wrist_rgb,
+            "wrist_depth": wrist_depth,
+            "wrist_point_cloud": wrist_pcd,
+            "front_rgb": front_rgb,
+            "front_depth": front_depth,
+            "front_point_cloud": front_pcd,
+            "left_shoulder_mask": left_shoulder_mask,
+            "right_shoulder_mask": right_shoulder_mask,
+            "overhead_mask": overhead_mask,
+            "wrist_mask": wrist_mask,
+            "front_mask": front_mask
+        })
 
-        obs = Observation(
-            left_shoulder_rgb=left_shoulder_rgb,
-            left_shoulder_depth=left_shoulder_depth,
-            left_shoulder_point_cloud=left_shoulder_pcd,
-            right_shoulder_rgb=right_shoulder_rgb,
-            right_shoulder_depth=right_shoulder_depth,
-            right_shoulder_point_cloud=right_shoulder_pcd,
-            overhead_rgb=overhead_rgb,
-            overhead_depth=overhead_depth,
-            overhead_point_cloud=overhead_pcd,
-            wrist_rgb=wrist_rgb,
-            wrist_depth=wrist_depth,
-            wrist_point_cloud=wrist_pcd,
-            front_rgb=front_rgb,
-            front_depth=front_depth,
-            front_point_cloud=front_pcd,
-            left_shoulder_mask=left_shoulder_mask,
-            right_shoulder_mask=right_shoulder_mask,
-            overhead_mask=overhead_mask,
-            wrist_mask=wrist_mask,
-            front_mask=front_mask,
-            joint_velocities=(
-                self._obs_config.joint_velocities_noise.apply(
-                    np.array(self.robot.arm.get_joint_velocities()))
-                if self._obs_config.joint_velocities else None),
-            joint_positions=(
-                self._obs_config.joint_positions_noise.apply(
-                    np.array(self.robot.arm.get_joint_positions()))
-                if self._obs_config.joint_positions else None),
-            joint_forces=(joint_forces
-                          if self._obs_config.joint_forces else None),
-            gripper_open=(
-                (1.0 if self.robot.gripper.get_open_amount()[0] > 0.95 else 0.0)
-                if self._obs_config.gripper_open else None),
-            gripper_pose=(
-                np.array(tip.get_pose())
-                if self._obs_config.gripper_pose else None),
-            gripper_matrix=(
-                tip.get_matrix()
-                if self._obs_config.gripper_matrix else None),
-            gripper_touch_forces=(
-                ee_forces_flat
-                if self._obs_config.gripper_touch_forces else None),
-            gripper_joint_positions=(
-                np.array(self.robot.gripper.get_joint_positions())
-                if self._obs_config.gripper_joint_positions else None),
-            task_low_dim_state=(
-                self.task.get_low_dim_state() if
-                self._obs_config.task_low_dim_state else None),
-            ignore_collisions=(
-                np.array((1.0 if self._ignore_collisions_for_current_waypoint else 0.0))
-                if self._obs_config.record_ignore_collisions else None),
-            misc=self._get_misc())
+
+        def get_proprioception(arm: Arm, gripper: Gripper):
+            tip = arm.get_tip()
+
+
+
+            if self._obs_config.joint_velocities:
+                joint_velocities=np.array(arm.dot_q)
+                joint_velocities=self._obs_config.joint_velocities_noise.apply(joint_velocities)
+            else:
+                joint_velocities=None
+
+            if self._obs_config.joint_positions:
+                joint_positions = np.array(arm.q)
+                joint_positions = self._obs_config.joint_positions_noise.apply(joint_positions)
+            else:
+                joint_positions = None
+            
+
+            if self._obs_config.joint_forces:
+                fs = arm.get_joint_forces()
+                vels = arm.get_joint_target_velocities()
+                joint_forces = np.array([-f if v < 0 else f for f, v in zip(fs, vels)])
+                joint_forces = self._obs_config.joint_forces_noise.apply(joint_forces)
+            else:
+                joint_forces=None
+
+            if self._obs_config.gripper_open:
+                if gripper.get_open_amount()[0] > 0.95:
+                    gripper_open = 1.0
+                else:
+                    gripper_open = 0.0
+            else:
+                gripper_open = None
+
+            if self._obs_config.gripper_pose:
+                gripper_pose = tip.get_pose()
+            else:
+                gripper_pose = None
+
+
+            if self._obs_config.gripper_matrix:
+                gripper_matrix = tip.get_matrix()
+            else:
+                gripper_matrix = None
+
+            if self._obs_config.gripper_touch_forces:
+                ee_forces = gripper.get_touch_sensor_forces()
+                ee_forces_flat = []
+                for eef in ee_forces:
+                    ee_forces_flat.extend(eef)
+                gripper_touch_forces = np.array(ee_forces_flat)
+            else:
+                gripper_touch_forces =  None
+
+
+            if self._obs_config.gripper_joint_positions:
+                gripper_joint_positions= np.array(gripper.q)
+            else:
+                gripper_joint_positions = None
+
+
+            if self._obs_config.record_ignore_collisions:
+                if self._ignore_collisions_for_current_waypoint:
+                    ignore_collisions = np.array(1.0)
+                else:
+                    ignore_collisions = np.array(0.0)
+            else:
+                ignore_collisions = None
+
+            return {"joint_velocities": joint_velocities, 
+            "joint_positions": joint_positions,
+            "joint_forces": joint_forces, 
+            "gripper_open": gripper_open,
+            "gripper_pose": gripper_pose,
+            "gripper_matrix": gripper_matrix,
+            "gripper_touch_forces": gripper_touch_forces,
+            "gripper_joint_positions": gripper_joint_positions, 
+            "ignore_collisions": ignore_collisions}
+
+
+        if self.robot.is_bimanual:
+            observation_data["right"] = UnimodalObservationData(**get_proprioception(self.robot.right_arm, self.robot.right_gripper))
+            observation_data["left"] = UnimodalObservationData(**get_proprioception(self.robot.left_arm, self.robot.left_gripper))
+        else:
+            observation_data.update(get_proprioception(self.robot.arm, self.robot.gripper))
+
+        task_low_dim_state=(
+            self.task.get_low_dim_state() if
+            self._obs_config.task_low_dim_state else None),
+
+        observation_data.update({
+            "task_low_dim_state": task_low_dim_state,
+            "misc": self._get_misc()
+        })
+
+        if self.robot.is_bimanual:
+            obs = BimanualObservation(**observation_data)
+        else:
+            obs = UnimodalObservation(**observation_data)
+
         obs = self.task.decorate_observation(obs)
         return obs
 

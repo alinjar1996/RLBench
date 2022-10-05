@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import numpy as np
 
 from dataclasses import dataclass
@@ -26,16 +27,8 @@ class Observation:
     front_depth: np.ndarray
     front_mask: np.ndarray
     front_point_cloud: np.ndarray
-    joint_velocities: np.ndarray
-    joint_positions: np.ndarray
-    joint_forces: np.ndarray
-    gripper_open: float
-    gripper_pose: np.ndarray
-    gripper_matrix: np.ndarray
-    gripper_joint_positions: np.ndarray
-    gripper_touch_forces: np.ndarray
+  
     task_low_dim_state: np.ndarray
-    ignore_collisions: np.ndarray
     misc: dict
 
     def get_low_dim_data(self) -> np.ndarray:
@@ -51,3 +44,45 @@ class Observation:
             if data is not None:
                 low_dim_data.append(data)
         return np.concatenate(low_dim_data) if len(low_dim_data) > 0 else np.array([])
+
+    @property
+    @abstractmethod
+    def is_bimanual(self):
+        pass
+
+
+@dataclass 
+class UnimodalObservationData:
+
+    joint_velocities: np.ndarray
+    joint_positions: np.ndarray
+    joint_forces: np.ndarray
+    gripper_open: float
+    gripper_pose: np.ndarray
+    gripper_matrix: np.ndarray
+    gripper_joint_positions: np.ndarray
+    gripper_touch_forces: np.ndarray
+
+    ignore_collisions: np.ndarray
+
+    
+@dataclass
+class UnimodalObservation(UnimodalObservationData, Observation):
+    
+    
+    @Observation.is_bimanual.getter
+    def is_bimanual(self):
+        return False
+
+
+@dataclass
+class BimanualObservation(Observation):
+    
+    right: UnimodalObservationData = None
+    left: UnimodalObservationData = None
+
+
+    @Observation.is_bimanual.getter
+    def is_bimanual(self):
+        return True
+

@@ -6,6 +6,7 @@ from rlbench import ObservationConfig
 from rlbench.action_modes.action_mode import MoveArmThenGripper
 from rlbench.action_modes.arm_action_modes import JointVelocity
 from rlbench.action_modes.gripper_action_modes import Discrete
+from rlbench.backend.exceptions import BoundaryError, InvalidActionError, TaskEnvironmentError, WaypointError
 from rlbench.backend.utils import task_file_to_task_class
 from rlbench.environment import Environment
 import rlbench.backend.task as task
@@ -19,6 +20,7 @@ import numpy as np
 
 from absl import app
 from absl import flags
+from absl import logging
 
 FLAGS = flags.FLAGS
 
@@ -356,7 +358,9 @@ def run_all_variations(i, lock, task_index, variation_count, results, file_lock,
                     demo, = task_env.get_demos(
                         amount=1,
                         live_demos=True)
-                except Exception as e:
+                #  NoWaypointsError, DemoError,
+                except (BoundaryError, WaypointError, InvalidActionError, TaskEnvironmentError) as e:
+                    logging.error("exception %s", e)
                     attempts -= 1
                     if attempts > 0:
                         continue

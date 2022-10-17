@@ -68,7 +68,13 @@ class Scene(object):
         self._has_init_task = self._has_init_episode = False
         self._variation_index = 0
 
-        self._initial_robot_state = (robot.arm.get_configuration_tree(),
+        if self.robot.is_bimanual:
+            self._initial_robot_state = [(robot.right_arm.get_configuration_tree(),
+                                     robot.right_gripper.get_configuration_tree()),
+                                     (robot.left_arm.get_configuration_tree(),
+                                     robot.left_gripper.get_configuration_tree())]
+        else:
+            self._initial_robot_state = (robot.arm.get_configuration_tree(),
                                      robot.gripper.get_configuration_tree())
 
         self._ignore_collisions_for_current_waypoint = False

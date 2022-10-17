@@ -5,6 +5,8 @@ import numpy as np
 from rlbench.backend.exceptions import InvalidActionError
 from rlbench.backend.scene import Scene
 
+from absl import logging
+
 
 def assert_action_shape(action: np.ndarray, expected_shape: tuple):
     if np.shape(action) != expected_shape:
@@ -22,6 +24,7 @@ class GripperActionMode(object):
     @abstractmethod
     def action_shape(self, scene: Scene):
         pass
+
 
 
 class Discrete(GripperActionMode):
@@ -74,3 +77,48 @@ class Discrete(GripperActionMode):
 
     def action_shape(self, scene: Scene) -> tuple:
         return 1,
+
+
+
+
+class BimanualDiscrete(Discrete):
+    
+    def _actuate(self, scene, action):
+        logging.warning("not fully implemented yet")
+
+        right_action = action[]
+        left_action = action[]
+        done = False
+        while not done:
+            done = scene.robot.right_gripper.actuate(action, velocity=0.2)
+            scene.pyrep.step()
+            scene.task.step()
+
+    def action(self, scene: Scene, action: np.ndarray):
+        assert_action_shape(action, self.action_shape(scene.robot))
+        if 0.0 > action[0] > 1.0:
+            raise InvalidActionError(
+                'Gripper action expected to be within 0 and 1.')
+        open_condition = all(
+            x > 0.9 for x in scene.robot.right_gripper.get_open_amount())
+        current_ee = 1.0 if open_condition else 0.0
+        action = float(action[0] > 0.5)
+
+        if current_ee != action:
+            done = False
+            if not self._detach_before_open:
+                self._actuate(scene, action)
+            if action == 0.0 and self._attach_grasped_objects:
+                # If gripper close action, the check for grasp.
+                for g_obj in scene.task.get_graspable_objects():
+                    scene.robot.right_gripper.grasp(g_obj)
+            else:
+                # If gripper open action, the check for un-grasp.
+                scene.robot.right_gripper.release()
+            if self._detach_before_open:
+                self._actuate(scene, action)
+            if action == 1.0:
+                # Step a few more times to allow objects to drop
+                for _ in range(10):
+                    scene.pyrep.step()
+                    scene.task.step()

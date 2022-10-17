@@ -5,6 +5,8 @@ from pyquaternion import Quaternion
 from pyrep.const import ConfigurationPathAlgorithms as Algos
 from pyrep.errors import ConfigurationPathError, IKError
 from pyrep.const import ObjectType
+from pyrep.robots.arms.arm import Arm
+from pyrep.robots.end_effectors.gripper import Gripper
 
 from rlbench.backend.exceptions import InvalidActionError
 from rlbench.backend.robot import Robot

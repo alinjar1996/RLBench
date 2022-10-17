@@ -15,6 +15,8 @@ from rlbench.backend.robot import BimanualRobot
 from rlbench.backend.scene import Scene
 from rlbench.const import SUPPORTED_ROBOTS
 
+from absl import logging
+
 
 def assert_action_shape(action: np.ndarray, expected_shape: tuple):
     if np.shape(action) != expected_shape:
@@ -52,6 +54,7 @@ class ArmActionMode(object):
         if isinstance(robot, UnimanualRobot):
             robot.arm.set_control_loop_enabled(True)
         elif isinstance(robot, BimanualRobot):
+            logging.warning("Setting control mode for both robots")
             robot.right_arm.set_control_loop_enabled(True)
             robot.left_arm.set_control_loop_enabled(True)
             
@@ -143,6 +146,7 @@ class JointTorque(ArmActionMode):
         robot.arm.set_control_loop_enabled(False)
 
 
+        
 class EndEffectorPoseViaPlanning(ArmActionMode):
     """High-level action where target pose is given and reached via planning.
 
@@ -208,44 +212,60 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
     def action(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
         assert_action_shape(action, (7,))
         assert_unit_quaternion(action[3:])
+        path =  self.get_path(scene, action, ignore_collisions, scene.robot.arm, scene.robot.gripper)
+        done = False
+        while not done:
+            done = path.step()
+            scene.step()
+            if self._callable_each_step is not None:
+                self._callable_each_step(scene.get_observation())
+            success, terminate = scene.task.success()
+            # If the task succeeds while traversing path, then break early
+            if success:
+                break
+    
+
+    def get_path(self, scene: Scene, action: np.ndarray, ignore_collisions: bool, arm: Arm, gripper: Gripper):
+        logging.warning("Not fully implemented yet.")
         if not self._absolute_mode and self._frame != 'end effector':
             action = calculate_delta_pose(scene.robot, action)
-        relative_to = None if self._frame == 'world' else scene.robot.arm.get_tip()
+        relative_to = None if self._frame == 'world' else arm.get_tip()
         self._quick_boundary_check(scene, action)
 
         colliding_shapes = []
         if not ignore_collisions: # self._collision_checking:
             if self._robot_shapes is None:
-                self._robot_shapes = scene.robot.arm.get_objects_in_tree(
+                self._robot_shapes = arm.get_objects_in_tree(
                     object_type=ObjectType.SHAPE)
             # First check if we are colliding with anything
-            colliding = scene.robot.arm.check_arm_collision()
+            colliding = arm.check_arm_collision()
             if colliding:
                 # Disable collisions with the objects that we are colliding with
-                grasped_objects = scene.robot.gripper.get_grasped_objects()
+                grasped_objects = gripper.get_grasped_objects()
                 colliding_shapes = [
                     s for s in scene.pyrep.get_objects_in_tree(
                         object_type = ObjectType.SHAPE) if (
                             s.is_collidable() and
                             s not in self._robot_shapes and
                             s not in grasped_objects and
-                            scene.robot.arm.check_arm_collision(
+                            arm.check_arm_collision(
                                 s))]
                 [s.set_collidable(False) for s in colliding_shapes]
 
         try:
             try:
-                path = scene.robot.arm.get_path(
+                path = arm.get_path(
                     action[:3],
                     quaternion=action[3:],
                     ignore_collisions=ignore_collisions,
                     relative_to=relative_to,
-                    trials=100,
+                    trials=200, #..TODO was 100
                     max_configs=10,
-                    max_time_ms=10,
-                    trials_per_goal=5,
+                    max_time_ms=20, #..TODO was 10
+                    trials_per_goal=10, #..TODO was 5
                     algorithm=Algos.RRTConnect
                 )
+                return path
             except ConfigurationPathError as e:
                 if ignore_collisions:
                     raise InvalidActionError(
@@ -253,7 +273,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
                         'being inaccessible or a collison was detected.') from e
                 else:
                     # try once more with collision checking disabled
-                    path = scene.robot.arm.get_path(
+                    path = arm.get_path(
                         action[:3],
                         quaternion=action[3:],
                         ignore_collisions=True,
@@ -268,9 +288,50 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
             raise InvalidActionError(
                 'A path could not be found. Most likely due to the target '
                 'being inaccessible or a collison was detected.') from e
+
+
+    def action_shape(self, scene: Scene) -> tuple:
+        return 7,
+
+
+class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
+
+
+    def action(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
+
+        assert_action_shape(action, self.action_shape(scene))
+ 
+        right_action = action[:7]
+        left_action = action[7:]
+
+        assert_unit_quaternion(right_action[3:])
+        assert_unit_quaternion(left_action[3:])
+
+        right_done = True
+        left_done = True
+
+        try:
+
+            right_path = self.get_path(scene, right_action, ignore_collisions, scene.robot.right_arm, scene.robot.right_gripper)
+            right_done = False
+        except ConfigurationPathError:
+            pass
+
+        try:
+            left_path = self.get_path(scene, left_action, ignore_collisions, scene.robot.left_arm, scene.robot.left_gripper)
+            left_done = False
+        except ConfigurationPathError:
+            pass
+
         done = False
+
         while not done:
-            done = path.step()
+            if not right_done:
+                right_done = right_path.step()
+            if not left_done:
+                left_done = left_path.step()
+
+            done = right_done and left_done
             scene.step()
             if self._callable_each_step is not None:
                 self._callable_each_step(scene.get_observation())
@@ -278,9 +339,10 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
             # If the task succeeds while traversing path, then break early
             if success:
                 break
-
+    
     def action_shape(self, scene: Scene) -> tuple:
-        return 7,
+        return 14,
+
 
 
 class EndEffectorPoseViaIK(ArmActionMode):

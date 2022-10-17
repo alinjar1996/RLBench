@@ -80,17 +80,21 @@ class Discrete(GripperActionMode):
 
 
 
-
 class BimanualDiscrete(Discrete):
     
     def _actuate(self, scene, action):
-        logging.warning("not fully implemented yet")
 
-        right_action = action[]
-        left_action = action[]
+        right_action = action[0]
+        left_action = action[1]
         done = False
+        right_done = False
+        left_done = False
         while not done:
-            done = scene.robot.right_gripper.actuate(action, velocity=0.2)
+            if not right_done:
+                right_done = scene.robot.right_gripper.actuate(right_action, velocity=0.2)
+            if not left_done:
+                left_done = scene.robot.left_gripper.actuate(left_action, velocity=0.2)
+            done = right_done and left_done
             scene.pyrep.step()
             scene.task.step()
 
@@ -99,26 +103,54 @@ class BimanualDiscrete(Discrete):
         if 0.0 > action[0] > 1.0:
             raise InvalidActionError(
                 'Gripper action expected to be within 0 and 1.')
-        open_condition = all(
-            x > 0.9 for x in scene.robot.right_gripper.get_open_amount())
-        current_ee = 1.0 if open_condition else 0.0
-        action = float(action[0] > 0.5)
 
-        if current_ee != action:
-            done = False
+        if 0.0 > action[1] > 1.0:
+            raise InvalidActionError(
+                'Gripper action expected to be within 0 and 1.')
+
+        right_open_condition = all(
+            x > 0.9 for x in scene.robot.right_gripper.get_open_amount())
+
+        left_open_condition = all(
+            x > 0.9 for x in scene.robot.left_gripper.get_open_amount())
+
+        right_current_ee = 1.0 if right_open_condition else 0.0
+        left_current_ee = 1.0 if left_open_condition else 0.0
+
+        right_action = float(action[0] > 0.5)
+        left_action = float(action[1] > 0.5)
+
+        if right_current_ee != right_action or left_current_ee != left_action:
             if not self._detach_before_open:
                 self._actuate(scene, action)
-            if action == 0.0 and self._attach_grasped_objects:
+
+        if right_current_ee != right_action:
+            if right_action == 0.0 and self._attach_grasped_objects:
                 # If gripper close action, the check for grasp.
                 for g_obj in scene.task.get_graspable_objects():
+                    logging.warning("..todo:: check distance to gripper")
                     scene.robot.right_gripper.grasp(g_obj)
             else:
                 # If gripper open action, the check for un-grasp.
                 scene.robot.right_gripper.release()
+        if left_current_ee != left_action:
+            if left_action == 0.0 and self._attach_grasped_objects:
+                # If gripper close action, the check for grasp.
+                for g_obj in scene.task.get_graspable_objects():
+                    logging.warning("..todo:: check distance to gripper")
+                    scene.robot.left_gripper.grasp(g_obj)
+            else:
+                # If gripper open action, the check for un-grasp.
+                scene.robot.left_gripper.release()
+
+        if right_current_ee != right_action or left_current_ee != left_action:
             if self._detach_before_open:
                 self._actuate(scene, action)
-            if action == 1.0:
+            if right_action == 1.0 or left_action == 1.0:
                 # Step a few more times to allow objects to drop
                 for _ in range(10):
                     scene.pyrep.step()
                     scene.task.step()
+
+    def action_shape(self, scene: Scene) -> tuple:
+        return 2,

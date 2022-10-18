@@ -327,9 +327,9 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
         done = False
 
         while not done:
-            if not right_done:
+            if not right_done and right_path:
                 right_done = right_path.step()
-            if not left_done:
+            if not left_done and left_path:
                 left_done = left_path.step()
 
             done = right_done and left_done

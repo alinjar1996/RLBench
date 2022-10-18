@@ -117,12 +117,13 @@ class Environment(object):
 
             right_arm = PandaRight()
             left_arm = PandaLeft()
-
-            left_arm.set_position(panda_pos)
-            right_arm.set_position(panda_pos)
-
             right_gripper = PandaGripperRight()
             left_gripper = PandaGripperLeft()
+
+            # ..not updating position as we assume that the scene already contains a two pandas   
+            #relative_left_position = left_arm.get_position(relative_to=right_arm)            
+            #right_arm.set_position(panda_pos)
+            #left_arm.set_position(relative_left_position, relative_to=right_arm)
 
             self._robot = BimanualRobot(right_arm, right_gripper, left_arm, left_gripper)
 

@@ -400,7 +400,7 @@ class Task(object):
         i = 0
         while True:
             name = waypoint_name % i
-            if not Object.exists(name) or i == self._stop_at_waypoint_index:
+            if i == self._stop_at_waypoint_index or not Object.exists(name):
                 # There are no more waypoints...
                 break
             ob_type = Object.get_object_type(name)

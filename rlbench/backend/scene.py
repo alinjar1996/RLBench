@@ -49,22 +49,40 @@ class Scene(object):
         self.task = None
         self._obs_config = obs_config
         self._initial_task_state = None
-        self._start_arm_joint_pos = robot.arm.get_joint_positions()
-        self._starting_gripper_joint_pos = robot.gripper.get_joint_positions()
+
+
+        if self.robot.is_bimanual:
+            self._start_arm_joint_pos = [robot.right_arm.get_joint_positions(), robot.left_arm.get_joint_positions()]
+            self._starting_gripper_joint_pos = [robot.right_gripper.get_joint_positions(), robot.left_gripper.get_joint_positions()]
+            logging.warning("Only using cameras for left arm")
+            name_prefix = 'Panda_leftArm_'
+        else:
+            self._start_arm_joint_pos = robot.arm.get_joint_positions()
+            self._starting_gripper_joint_pos = robot.gripper.get_joint_positions()
+            name_prefix = ''
+    
         self._workspace = Shape('workspace')
         self._workspace_boundary = SpawnBoundary([self._workspace])
-        self._cam_over_shoulder_left = VisionSensor('cam_over_shoulder_left')
-        self._cam_over_shoulder_right = VisionSensor('cam_over_shoulder_right')
+        
+        
+        self._cam_over_shoulder_left = VisionSensor(f'cam_over_shoulder_left')
+        self._cam_over_shoulder_right = VisionSensor(f'cam_over_shoulder_right')
         self._cam_overhead = VisionSensor('cam_overhead')
-        self._cam_wrist = VisionSensor('cam_wrist')
-        self._cam_front = VisionSensor('cam_front')
+        self._cam_wrist = VisionSensor(f'{name_prefix}cam_wrist')
+        self._cam_front = VisionSensor(f'cam_front')
+
+
         self._cam_over_shoulder_left_mask = VisionSensor(
-            'cam_over_shoulder_left_mask')
+                'cam_over_shoulder_left_mask')
         self._cam_over_shoulder_right_mask = VisionSensor(
-            'cam_over_shoulder_right_mask')
+                'cam_over_shoulder_right_mask')
+
+
         self._cam_overhead_mask = VisionSensor('cam_overhead_mask')
-        self._cam_wrist_mask = VisionSensor('cam_wrist_mask')
-        self._cam_front_mask = VisionSensor('cam_front_mask')
+        self._cam_wrist_mask = VisionSensor(f'{name_prefix}cam_wrist_mask')
+        self._cam_front_mask = VisionSensor(f'cam_front_mask')
+        
+
         self._has_init_task = self._has_init_episode = False
         self._variation_index = 0
 

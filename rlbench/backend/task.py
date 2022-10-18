@@ -24,6 +24,7 @@ from rlbench.backend.waypoints import Point, PredefinedPath, Waypoint
 from absl import logging
 
 TASKS_PATH = join(dirname(abspath(__file__)), '../tasks')
+BIMANUAL_TASKS_PATH = join(dirname(abspath(__file__)), '../bimanual_tasks')
 
 
 class Task(object):

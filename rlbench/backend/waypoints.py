@@ -45,6 +45,10 @@ class Waypoint(object):
         if self._end_of_path_func is not None:
             self._end_of_path_func(self)
 
+    def __str__(self):
+        return f"{self._waypoint} - {self._arm}"
+
+
 
 class Point(Waypoint):
 

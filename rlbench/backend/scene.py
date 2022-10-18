@@ -442,11 +442,30 @@ class Scene(object):
                 point.start_of_path()
                 if point.skip:
                     continue
-                grasped_objects = self.robot.gripper.get_grasped_objects()
-                colliding_shapes = [s for s in self.pyrep.get_objects_in_tree(
+
+                colliding_shapes = []                
+                # ..todo:: check if we can mix colliding shapes
+                if not self.robot.is_bimanual:
+                    grasped_objects = self.robot.gripper.get_grasped_objects()
+                    colliding_shapes = [s for s in self.pyrep.get_objects_in_tree(
                     object_type=ObjectType.SHAPE) if s not in grasped_objects
                                     and s not in self._robot_shapes and s.is_collidable()
                                     and self.robot.arm.check_arm_collision(s)]
+                else:
+                    grasped_objects = self.robot.right_gripper.get_grasped_objects() + self.robot.left_gripper.get_grasped_objects()
+                    colliding_shapes = []
+                    for s in self.pyrep.get_objects_in_tree(object_type=ObjectType.SHAPE):
+                        if s in grasped_objects:
+                            continue
+                        if not s.is_collidable():
+                            continue
+                        if self.robot.right_arm.check_arm_collision(s):
+                            colliding_shapes.append(s)
+                        elif self.robot.left_arm.check_arm_collision(s):
+                            colliding_shapes.append(s)
+                
+                
+
                 [s.set_collidable(False) for s in colliding_shapes]
                 try:
                     path = point.get_path()

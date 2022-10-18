@@ -314,14 +314,15 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
 
             right_path = self.get_path(scene, right_action, ignore_collisions, scene.robot.right_arm, scene.robot.right_gripper)
             right_done = False
-        except ConfigurationPathError:
+        except (ConfigurationPathError, InvalidActionError):
             pass
-
+        
         try:
             left_path = self.get_path(scene, left_action, ignore_collisions, scene.robot.left_arm, scene.robot.left_gripper)
             left_done = False
-        except ConfigurationPathError:
+        except (ConfigurationPathError, InvalidActionError):
             pass
+        
 
         done = False
 

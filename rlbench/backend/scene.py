@@ -112,8 +112,12 @@ class Scene(object):
         self.target_workspace_check = Dummy.create()
         self._step_callback = None
 
-        self._robot_shapes = self.robot.arm.get_objects_in_tree(
-            object_type=ObjectType.SHAPE)
+        if self.robot.is_bimanual:
+               self._robot_shapes = [self.robot.right_arm.get_objects_in_tree(object_type=ObjectType.SHAPE), 
+               self.robot.left_arm.get_objects_in_tree(object_type=ObjectType.SHAPE)]
+        else:
+            self._robot_shapes = self.robot.arm.get_objects_in_tree(
+                object_type=ObjectType.SHAPE)
 
     def load(self, task: Task) -> None:
         """Loads the task and positions at the centre of the workspace.

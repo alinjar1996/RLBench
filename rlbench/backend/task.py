@@ -373,7 +373,7 @@ class Task(object):
                 return True, -1
             else:
                 logging.warn("Waypoints are not reachable right=%s left=%s", f_right, f_left)
-                return False, min(f_right[1], f_left[1])
+                return False, (f_right, f_left)
 
         else:
             logging.error('Invalid robot')
@@ -449,7 +449,7 @@ class Task(object):
         feasible, way_i = self._feasible(waypoints)
         if not feasible:
             raise WaypointError(
-                "Infeasible episode. Can't reach waypoint %d." % way_i, self)
+                "Infeasible episode. Can't reach waypoint %s." % way_i, self)
         for func, way in additional_waypoint_inits:
             func(way)
         return waypoints

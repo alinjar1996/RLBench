@@ -18,7 +18,7 @@ from click_prompt import auto_complete_argument
 from pyrep.const import RenderMode
 
 from rlbench.backend import task
-from rlbench.backend.const import TTT_FILE
+from rlbench.backend.const import BIMANUAL_TTT_FILE
 from pyrep import PyRep
 from pyrep.robots.arms.panda import Panda
 from pyrep.objects.shape import Shape
@@ -88,25 +88,25 @@ class LoadedTask(object):
         if len(task_file) > 3 and task_file[-3:] != '.py':
             task_file += '.py'
         try:
-            task_class = name_to_task_class(task_file)
+            task_class = name_to_task_class(task_file, True)
         except:
             print('There was no task named: %s. '
                   'Would you like to create it?' % task_file)
             inp = input()
             if inp == 'y':
                 self._create_python_file(task_file)
-                task_class = name_to_task_class(task_file)
+                task_class = name_to_task_class(task_file, True)
             else:
                 print('Please pick a defined task in that case.')
                 task_class, task_file = self._edit_new_task()
         return task_class, task_file
 
     def _create_python_file(self, task_file: str):
-        with open(join(CURRENT_DIR, 'assets', 'task_template.txt'), 'r') as f:
+        with open(join(CURRENT_DIR, 'assets', 'bimanual_task_template.txt'), 'r') as f:
             file_content = f.read()
         class_name = self._file_to_class_name(task_file)
         file_content = file_content % (class_name,)
-        new_file_path = join(CURRENT_DIR, '../rlbench/tasks', task_file)
+        new_file_path = join(CURRENT_DIR, '../rlbench/bimanual_tasks', task_file)
         if isfile(new_file_path):
             raise RuntimeError('File already exists. Will not override this.')
         with open(new_file_path, 'w+') as f:
@@ -118,7 +118,7 @@ class LoadedTask(object):
 
     def reload_python(self):
         try:
-            task_class = name_to_task_class(self.task_file)
+            task_class = name_to_task_class(self.task_file, True)
         except Exception as e:
             print_fail('The python file could not be loaded!')
             traceback.print_exc()
@@ -208,7 +208,7 @@ class LoadedTask(object):
         handle.set_name(name)
 
         # Change the class name
-        old_file_path = join(CURRENT_DIR, '../rlbench/tasks', self.task_file)
+        old_file_path = join(CURRENT_DIR, '../rlbench/bimanual_tasks', self.task_file)
         old_class_name = self._file_to_class_name(self.task_file)
         new_class_name = self._file_to_class_name(name)
         with open(old_file_path, 'r') as f:
@@ -218,7 +218,7 @@ class LoadedTask(object):
             f.write(content)
 
         # Rename python task file
-        new_file_path = join(CURRENT_DIR, '../rlbench/tasks', python_file)
+        new_file_path = join(CURRENT_DIR, '../rlbench/bimanual_tasks', python_file)
         os.rename(old_file_path, new_file_path)
 
         # Rename .ttt
@@ -243,9 +243,9 @@ class LoadedTask(object):
         new_python_file = name + '.py'
 
         # Change the class name
-        old_file_path = join(CURRENT_DIR, '../rlbench/tasks', self.task_file)
+        old_file_path = join(CURRENT_DIR, '../rlbench/bimanual_tasks', self.task_file)
         old_class_name = self._file_to_class_name(self.task_file)
-        new_file_path = join(CURRENT_DIR, '../rlbench/tasks', new_python_file)
+        new_file_path = join(CURRENT_DIR, '../rlbench/bimanual_tasks', new_python_file)
         new_class_name = self._file_to_class_name(name)
 
         if os.path.isfile(new_file_path):
@@ -280,26 +280,19 @@ from absl import logging
 NEW_TASKS = 'New'
 
 def get_all_available_tasks():
-    return [t.replace('.py', '') for t in os.listdir(task.TASKS_PATH)
+    return [t.replace('.py', '') for t in os.listdir(task.BIMANUAL_TASKS_PATH)
                   if t != '__init__.py' and t.endswith('.py')]
 
-@click.command()
-@auto_complete_argument('task-name', type=click.Choice(get_all_available_tasks()))
-def cli():
-    pass
-
 if __name__ == '__main__':
-
 
     logging.set_verbosity(logging.DEBUG)
 
     setup_list_completer()
 
     pr = PyRep()
-    ttt_file = join(CURRENT_DIR, '..', 'rlbench', TTT_FILE)
+    ttt_file = join(CURRENT_DIR, '..', 'rlbench', BIMANUAL_TTT_FILE)
     pr.launch(ttt_file, responsive_ui=True)
     pr.step_ui()
-
 
 
     robot = BimanualRobot(PandaRight(), PandaGripperRight(), PandaLeft(), PandaGripperLeft())

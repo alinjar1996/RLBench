@@ -19,11 +19,14 @@ class InvalidTaskName(Exception):
     pass
 
 
-def name_to_task_class(task_file: str):
+def name_to_task_class(task_file: str, bimanual=False):
     name = task_file.replace('.py', '')
     class_name = ''.join([w[0].upper() + w[1:] for w in name.split('_')])
     try:
-        mod = importlib.import_module("rlbench.tasks.%s" % name)
+        if bimanual:
+            mod = importlib.import_module("rlbench.bimanual_tasks.%s" % name)
+        else:
+            mod = importlib.import_module("rlbench.tasks.%s" % name)
         mod = importlib.reload(mod)
     except ModuleNotFoundError as e:
         raise InvalidTaskName(

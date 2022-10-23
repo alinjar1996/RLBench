@@ -76,18 +76,29 @@ class JointVelocity(ArmActionMode):
         return SUPPORTED_ROBOTS[scene.robot_setup][2],
 
     def set_control_mode(self, robot: Robot):
+        robot.arm.set_control_loop_enabled(False)
+        robot.arm.set_motor_locked_at_zero_velocity(True)
 
-        if isinstance(robot, UnimanualRobot):
-            robot.arm.set_control_loop_enabled(False)
-            robot.arm.set_motor_locked_at_zero_velocity(True)
+class BimanualJointVelocity(ArmActionMode): 
 
-        elif isinstance(robot, BimanualRobot):
-            robot.right_arm.set_control_loop_enabled(False)
-            robot.right_arm.set_motor_locked_at_zero_velocity(True)
-            robot.left_arm.set_control_loop_enabled(False)
-            robot.left_arm.set_motor_locked_at_zero_velocity(True)
+    def action(self, scene: Scene, action: np.ndarray):
+        assert_action_shape(action, self.action_shape(scene))
+        right_action = action[:7]
+        left_action = action[7:]
+        scene.robot.right_arm.set_joint_target_velocities(right_action)
+        scene.robot.left_arm.set_joint_target_velocities(left_action)
+        scene.step()
+        scene.robot.right_arm.set_joint_target_velocities(np.zeros_like(right_action))
+        scene.robot.left_arm.set_joint_target_velocities(np.zeros_like(left_action))
 
+    def action_shape(self, scene: Scene) -> tuple:
+        return SUPPORTED_ROBOTS[scene.robot_setup][2],
 
+    def set_control_mode(self, robot: Robot):
+        robot.right_arm.set_control_loop_enabled(False)
+        robot.right_arm.set_motor_locked_at_zero_velocity(True)
+        robot.left_arm.set_control_loop_enabled(False)
+        robot.left_arm.set_motor_locked_at_zero_velocity(True)
 
 class JointPosition(ArmActionMode):
     """Control the target joint positions (absolute or delta) of the arm.
@@ -120,6 +131,7 @@ class JointPosition(ArmActionMode):
         return SUPPORTED_ROBOTS[scene.robot_setup][2],
 
 
+
 class JointTorque(ArmActionMode):
     """Control the joint torques of the arm.
     """
@@ -144,6 +156,7 @@ class JointTorque(ArmActionMode):
 
     def set_control_mode(self, robot: Robot):
         robot.arm.set_control_loop_enabled(False)
+
 
 
         
@@ -297,12 +310,15 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
 class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
 
 
-    def action(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
+    def action(self, scene: Scene, action: np.ndarray, ignore_collisions: np.ndarray):
 
         assert_action_shape(action, self.action_shape(scene))
  
         right_action = action[:7]
         left_action = action[7:]
+
+        right_ignore_collision = ignore_collisions[0]
+        left_ignore_collison = ignore_collisions[1]
 
         assert_unit_quaternion(right_action[3:])
         assert_unit_quaternion(left_action[3:])
@@ -311,14 +327,13 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
         left_done = True
 
         try:
-
-            right_path = self.get_path(scene, right_action, ignore_collisions, scene.robot.right_arm, scene.robot.right_gripper)
+            right_path = self.get_path(scene, right_action, right_ignore_collision, scene.robot.right_arm, scene.robot.right_gripper)
             right_done = False
         except (ConfigurationPathError, InvalidActionError):
             pass
         
         try:
-            left_path = self.get_path(scene, left_action, ignore_collisions, scene.robot.left_arm, scene.robot.left_gripper)
+            left_path = self.get_path(scene, left_action, left_ignore_collison, scene.robot.left_arm, scene.robot.left_gripper)
             left_done = False
         except (ConfigurationPathError, InvalidActionError):
             pass
@@ -344,7 +359,8 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
     def action_shape(self, scene: Scene) -> tuple:
         return 14,
 
-
+    def unimanual_action_shape(self, scene: Scene) -> tuple:
+        return 7,
 
 class EndEffectorPoseViaIK(ArmActionMode):
     """High-level action where target pose is given and reached via IK.

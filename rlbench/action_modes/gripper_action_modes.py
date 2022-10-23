@@ -154,3 +154,6 @@ class BimanualDiscrete(Discrete):
 
     def action_shape(self, scene: Scene) -> tuple:
         return 2,
+
+    def unimodal_action_shape(self, scene: Scene) -> tuple:
+        return 1,

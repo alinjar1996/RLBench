@@ -46,13 +46,28 @@ class BimanualMoveArmThenGripper(MoveArmThenGripper):
     """The arm action is first applied, followed by the gripper action. """
 
     def action(self, scene: Scene, action: np.ndarray):
-        arm_act_size = np.prod(self.arm_action_mode.action_shape(scene))
-        arm_action = np.array(action[:arm_act_size])
-        ee_action_size = np.prod(self.gripper_action_mode.action_shape(scene))
-        ee_action = np.array(action[arm_act_size:arm_act_size+ee_action_size])
-        right_ignore_collisions = bool(action[arm_act_size+ee_action_size:arm_act_size+ee_action_size+1])
-        left_ignore_collisions = bool(action[arm_act_size+ee_action_size+1:arm_act_size+ee_action_size+2])
-        assert(right_ignore_collisions == left_ignore_collisions)
-        ignore_collisions = right_ignore_collisions
+
+        arm_action_size = np.prod(self.arm_action_mode.unimodal_action_shape(scene))
+        ee_action_size = np.prod(self.gripper_action_mode.unimodal_action_shape(scene))
+        ignore_collisions_size = 1
+
+        action_size = arm_action_size + ee_action_size + ignore_collisions_size
+
+        right_action = action[:action_size]
+        left_action = action[action_size:]
+
+        right_arm_action = np.array(right_action[:arm_action_size])
+        left_arm_action = np.array(left_action[:arm_action_size])
+
+        arm_action = np.concatenate([right_arm_action, left_arm_action], axis=0)        
+
+        right_ee_action = np.array(right_action[arm_action_size:arm_action_size+ee_action_size])
+        left_ee_action = np.array(left_action[arm_action_size:arm_action_size+ee_action_size])
+        ee_action = np.concatenate([right_ee_action, left_ee_action], axis=0)
+
+        right_ignore_collisions = bool(right_action[arm_action_size+ee_action_size:arm_action_size+ee_action_size+1])
+        left_ignore_collisions = bool(left_action[arm_action_size+ee_action_size:arm_action_size+ee_action_size+1])
+        ignore_collisions = np.concatenate([right_ignore_collisions, left_ignore_collisions], axis=0)
+
         self.arm_action_mode.action(scene, arm_action, ignore_collisions)
         self.gripper_action_mode.action(scene, ee_action)

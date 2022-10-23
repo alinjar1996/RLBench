@@ -46,5 +46,5 @@ SUPPORTED_ROBOTS = {
     'mico': (Mico, MicoGripper, 6),
     'sawyer': (Sawyer, BaxterGripper, 7),
     'ur5': (UR5, Robotiq85Gripper, 6),
-    'dual_panda': (PandaRight, PandaGripperRight, 0)
+    'dual_panda': (PandaRight, PandaGripperRight, 14)
 }

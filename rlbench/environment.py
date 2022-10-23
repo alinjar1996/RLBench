@@ -28,6 +28,8 @@ from rlbench.sim2real.domain_randomization import RandomizeEvery, \
 from rlbench.sim2real.domain_randomization_scene import DomainRandomizationScene
 from rlbench.task_environment import TaskEnvironment
 
+from absl import logging
+
 DIR_PATH = dirname(abspath(__file__))
 
 
@@ -99,7 +101,12 @@ class Environment(object):
         if self._pyrep is not None:
             raise RuntimeError('Already called launch!')
         self._pyrep = PyRep()
-        self._pyrep.launch(join(DIR_PATH, TTT_FILE), headless=self._headless)
+        if self._robot_setup == 'dual_panda':
+            self._pyrep.launch(join(DIR_PATH, BIMANUAL_TTT_FILE), headless=self._headless)
+        else:
+            self._pyrep.launch(join(DIR_PATH, TTT_FILE), headless=self._headless)
+
+
 
         arm_class, gripper_class, _ = SUPPORTED_ROBOTS[
             self._robot_setup]
@@ -120,7 +127,7 @@ class Environment(object):
             right_gripper = PandaGripperRight()
             left_gripper = PandaGripperLeft()
 
-            # ..not updating position as we assume that the scene already contains a two pandas   
+            # ..not updating position as we assume that the scene already contains two pandas which are placed correctly     
             #relative_left_position = left_arm.get_position(relative_to=right_arm)            
             #right_arm.set_position(panda_pos)
             #left_arm.set_position(relative_left_position, relative_to=right_arm)

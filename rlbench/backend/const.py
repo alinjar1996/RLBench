@@ -25,6 +25,8 @@ VARIATION_DESCRIPTIONS = 'variation_descriptions.pkl'
 VARIATION_NUMBER = 'variation_number.pkl'
 
 TTT_FILE = 'task_design.ttt'
+BIMANUAL_TTT_FILE = 'task_design_bimanual.ttt'
+
 
 DEPTH_SCALE = 2**24 - 1
 

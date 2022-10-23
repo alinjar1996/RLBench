@@ -120,9 +120,9 @@ class BimanualRobot(Robot):
         if 'left' in name:
             return self.left_gripper.actuate(amount, velocity)
         if 'both' in name:
-            logging.warn("not fully implemented yet.")
-            self.right_gripper.actuate(amount, velocity)
-            return self.left_gripper.actuate(amount, velocity)
+            right_done = self.right_gripper.actuate(amount, velocity)
+            left_done = self.left_gripper.actuate(amount, velocity)
+            return right_done and left_done
         else:
             logging.warning("invalid robot name %s", name)
             return True
@@ -134,9 +134,9 @@ class BimanualRobot(Robot):
         if 'left' in name:
             return self.left_gripper.grasp(obj)
         if 'both' in name:
-            logging.warn("not fully implemented yet.")
-            self.right_gripper.grasp(obj)
-            return self.left_gripper.grasp(obj)
+            right_detected = self.right_gripper.grasp(obj)
+            left_detected = self.left_gripper.grasp(obj)
+            return right_detected and left_detected
 
 
     @Robot.is_bimanual.getter

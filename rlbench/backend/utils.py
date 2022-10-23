@@ -207,11 +207,15 @@ def image_to_float_array(image, scale_factor=None):
   return scaled_array
 
 
-def task_file_to_task_class(task_file):
+def task_file_to_task_class(task_file, bimanual=False):
+  #..fixme:: duplicate rlbench.utils.name_to_task_class
   import importlib
   name = task_file.replace('.py', '')
   class_name = ''.join([w[0].upper() + w[1:] for w in name.split('_')])
-  mod = importlib.import_module("rlbench.tasks.%s" % name)
+  if bimanual:
+    mod = importlib.import_module("rlbench.bimanual_tasks.%s" % name)
+  else:
+    mod = importlib.import_module("rlbench.tasks.%s" % name)
   mod = importlib.reload(mod)
   task_class = getattr(mod, class_name)
   return task_class

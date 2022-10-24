@@ -5,7 +5,7 @@ from pyrep.robots.end_effectors.gripper import Gripper
 from abc import ABC
 from abc import abstractmethod
 
-from absl import logging
+import logging
 
 class Robot(ABC):
     """Simple container for the robot components.

@@ -5,7 +5,7 @@ from pyrep.robots.configuration_paths.arm_configuration_path import (
 
 from pyrep.robots.arms.arm import Arm
 
-from absl import logging
+import logging
 
 
 

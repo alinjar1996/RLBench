@@ -21,7 +21,7 @@ from rlbench.backend.observation import Observation
 from rlbench.backend.robot import BimanualRobot, Robot, UnimanualRobot
 from rlbench.backend.waypoints import Point, PredefinedPath, Waypoint
 
-from absl import logging
+import logging
 
 TASKS_PATH = join(dirname(abspath(__file__)), '../tasks')
 BIMANUAL_TASKS_PATH = join(dirname(abspath(__file__)), '../bimanual_tasks')
@@ -456,7 +456,6 @@ class Task(object):
 
 
 
-from absl import logging
 class BimanualTask(Task):
 
     def __init__(self, pyrep: PyRep, robot: Robot, name: str = None):

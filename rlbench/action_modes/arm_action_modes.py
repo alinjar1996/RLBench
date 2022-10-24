@@ -15,7 +15,7 @@ from rlbench.backend.robot import BimanualRobot
 from rlbench.backend.scene import Scene
 from rlbench.const import SUPPORTED_ROBOTS
 
-from absl import logging
+import logging
 
 
 def assert_action_shape(action: np.ndarray, expected_shape: tuple):

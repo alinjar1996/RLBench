@@ -28,7 +28,7 @@ import numpy as np
 
 from absl import app
 from absl import flags
-from absl import logging
+import logging
 
 FLAGS = flags.FLAGS
 

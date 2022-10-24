@@ -1,4 +1,4 @@
-from absl import logging
+import logging
 from typing import List, Callable
 
 import numpy as np

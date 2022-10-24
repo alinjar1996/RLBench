@@ -3,6 +3,8 @@ import os
 import sys
 from os.path import join, dirname, abspath, isfile
 
+import logging
+
 from pyrep.robots.arms.dual_panda import PandaLeft, PandaRight
 from pyrep.robots.end_effectors.dual_panda_gripper import PandaGripperLeft, PandaGripperRight
 
@@ -274,7 +276,6 @@ class LoadedTask(object):
         self.save_task()
         print('Duplicate complete!')
 
-from absl import logging
 
 
 NEW_TASKS = 'New'

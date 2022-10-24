@@ -28,7 +28,7 @@ from rlbench.sim2real.domain_randomization import RandomizeEvery, \
 from rlbench.sim2real.domain_randomization_scene import DomainRandomizationScene
 from rlbench.task_environment import TaskEnvironment
 
-from absl import logging
+import logging
 
 DIR_PATH = dirname(abspath(__file__))
 

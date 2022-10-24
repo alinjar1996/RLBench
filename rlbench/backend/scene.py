@@ -30,7 +30,7 @@ from rlbench.observation_config import ObservationConfig, CameraConfig
 
 STEPS_BEFORE_EPISODE_START = 10
 
-from absl import logging
+import logging
 
 
 class Scene(object):

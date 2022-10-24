@@ -310,7 +310,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
 class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
 
 
-    def action(self, scene: Scene, action: np.ndarray, ignore_collisions: np.ndarray):
+    def action(self, scene: Scene, action: np.ndarray, ignore_collisions):
 
         assert_action_shape(action, self.action_shape(scene))
  
@@ -328,13 +328,19 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
 
         try:
             right_path = self.get_path(scene, right_action, right_ignore_collision, scene.robot.right_arm, scene.robot.right_gripper)
-            right_done = False
+            if right_path:
+                right_done = False
+            else:
+                logging.warning("right path is none")
         except (ConfigurationPathError, InvalidActionError):
             pass
         
         try:
             left_path = self.get_path(scene, left_action, left_ignore_collison, scene.robot.left_arm, scene.robot.left_gripper)
-            left_done = False
+            if left_path:
+                left_done = False
+            else:
+                logging.warning("left path is none")
         except (ConfigurationPathError, InvalidActionError):
             pass
         

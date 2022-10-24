@@ -47,8 +47,8 @@ class BimanualMoveArmThenGripper(MoveArmThenGripper):
 
     def action(self, scene: Scene, action: np.ndarray):
 
-        arm_action_size = np.prod(self.arm_action_mode.unimodal_action_shape(scene))
-        ee_action_size = np.prod(self.gripper_action_mode.unimodal_action_shape(scene))
+        arm_action_size = np.prod(self.arm_action_mode.unimanual_action_shape(scene))
+        ee_action_size = np.prod(self.gripper_action_mode.unimanual_action_shape(scene))
         ignore_collisions_size = 1
 
         action_size = arm_action_size + ee_action_size + ignore_collisions_size
@@ -67,7 +67,7 @@ class BimanualMoveArmThenGripper(MoveArmThenGripper):
 
         right_ignore_collisions = bool(right_action[arm_action_size+ee_action_size:arm_action_size+ee_action_size+1])
         left_ignore_collisions = bool(left_action[arm_action_size+ee_action_size:arm_action_size+ee_action_size+1])
-        ignore_collisions = np.concatenate([right_ignore_collisions, left_ignore_collisions], axis=0)
+        ignore_collisions = [right_ignore_collisions, left_ignore_collisions]
 
         self.arm_action_mode.action(scene, arm_action, ignore_collisions)
         self.gripper_action_mode.action(scene, ee_action)

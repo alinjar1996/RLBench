@@ -329,13 +329,13 @@ class Scene(object):
 
 
             if self._obs_config.joint_velocities:
-                joint_velocities=np.array(arm.dot_q)
+                joint_velocities=np.array(arm.get_joint_velocities())
                 joint_velocities=self._obs_config.joint_velocities_noise.apply(joint_velocities)
             else:
                 joint_velocities=None
 
             if self._obs_config.joint_positions:
-                joint_positions = np.array(arm.q)
+                joint_positions = np.array(arm.get_joint_positions())
                 joint_positions = self._obs_config.joint_positions_noise.apply(joint_positions)
             else:
                 joint_positions = None
@@ -379,7 +379,7 @@ class Scene(object):
 
 
             if self._obs_config.gripper_joint_positions:
-                gripper_joint_positions= np.array(gripper.q)
+                gripper_joint_positions= np.array(gripper.get_joint_positions())
             else:
                 gripper_joint_positions = None
 

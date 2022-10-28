@@ -29,9 +29,8 @@ class CoordinatedCloseJar(BimanualTask):
         self.conditions = [NothingGrasped(self.robot.left_gripper), NothingGrasped(self.robot.right_gripper)]
 
         self.waypoint_mapping = defaultdict(lambda: 'left')
-        self.waypoint_mapping.update({'waypoint0': 'right', 'waypoint1': 'right', 'waypoint2': 'right'})
-        self.waypoint_mapping.update({'waypoint3': 'right', 'waypoint4': 'right', 'waypoint5': 'right'})
-        self.waypoint_mapping.update({'waypoint6': 'right'})
+        for i in range(7):
+            self.waypoint_mapping[f'waypoint{i}'] = 'right'
 
     def init_episode(self, index: int) -> List[str]:
         b = SpawnBoundary([self.boundary])

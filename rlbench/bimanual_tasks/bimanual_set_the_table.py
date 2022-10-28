@@ -24,10 +24,9 @@ class BimanualSetTheTable(Task):
         self.register_graspable_objects([plate, fork, knife, spoon, glass])
 
         self.waypoint_mapping = defaultdict(lambda: 'left')
+        
         for i in range(5):
             self.waypoint_mapping[f'waypoint{i}'] = 'right'
-        for i in range(5, 23):
-            self.waypoint_mapping[f'waypoint{i}'] = 'left'
         for i in range(23, 28):
             self.waypoint_mapping[f'waypoint{i}'] = 'right'
 

@@ -378,7 +378,7 @@ class Task(object):
         else:
             logging.error('Invalid robot')
 
-    def _feasible_with_arm(self, arm, waypoints: List[Point]) -> Tuple[bool, int]:
+    def _feasible_with_arm(self, arm, waypoints: List[Point]) -> Tuple[bool, str]:
         start_vals = arm.get_joint_positions()
         for i, point in enumerate(waypoints):
             path = None
@@ -388,11 +388,12 @@ class Task(object):
                 pass
             if path is None:
                 arm.set_joint_positions(start_vals)
-                return False, i
+                
+                return False, str(point)
             path.set_to_end()
         # Needed twice otherwise can glitch out.
         arm.set_joint_positions(start_vals)
-        return True, -1
+        return True, ""
 
     def _get_waypoints(self, validating=False) -> List[Waypoint]:
         waypoint_name = 'waypoint%d'
@@ -449,7 +450,7 @@ class Task(object):
         feasible, way_i = self._feasible(waypoints)
         if not feasible:
             raise WaypointError(
-                "Infeasible episode. Can't reach waypoint %s." % way_i, self)
+                "Infeasible episode. Can't reach waypoint %s." % str(way_i), self)
         for func, way in additional_waypoint_inits:
             func(way)
         return waypoints

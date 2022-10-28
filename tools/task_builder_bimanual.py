@@ -286,7 +286,6 @@ def get_all_available_tasks():
 
 if __name__ == '__main__':
 
-    logging.set_verbosity(logging.DEBUG)
 
     setup_list_completer()
 

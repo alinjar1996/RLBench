@@ -113,14 +113,12 @@ class Environment(object):
 
 
         if self._robot_setup == 'dual_panda':
+
+            logging.info("Using dual panda robot")
            
             panda_arm = Panda()
             panda_pos = panda_arm.get_position()
             panda_arm.remove()
-
-            from pyrep.objects.dummy import Dummy
-            #arm = Dummy('DualPanda')
-            #arm.set_position(panda_pos)
 
             right_arm = PandaRight()
             left_arm = PandaLeft()

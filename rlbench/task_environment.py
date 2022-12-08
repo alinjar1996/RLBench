@@ -16,8 +16,8 @@ from rlbench.demo import Demo
 from rlbench.observation_config import ObservationConfig
 
 _DT = 0.05
-_MAX_RESET_ATTEMPTS = 40
-_MAX_DEMO_ATTEMPTS = 10
+_MAX_RESET_ATTEMPTS = 100
+_MAX_DEMO_ATTEMPTS = 25
 
 
 class TaskEnvironment(object):
@@ -46,14 +46,16 @@ class TaskEnvironment(object):
         self._prev_ee_velocity = None
         self._enable_path_observations = False
 
+
         self._scene.load(self._task)
         self._pyrep.start()
 
-        if isinstance(self._robot, UnimanualRobot):
+        if self._robot.is_bimanual:
+            self._robot_shapes = self._robot.right_arm.get_objects_in_tree(object_type=ObjectType.SHAPE) + self._robot.left_arm.get_objects_in_tree(object_type=ObjectType.SHAPE)
+        else:
             self._robot_shapes = self._robot.arm.get_objects_in_tree(object_type=ObjectType.SHAPE)
-        elif isinstance(self._robot, BimanualRobot):
-            self._robot_shapes = self._robot.right_arm.get_objects_in_tree(object_type=ObjectType.SHAPE)
-
+        
+  
     def get_name(self) -> str:
         return self._task.get_name()
 
@@ -79,6 +81,7 @@ class TaskEnvironment(object):
                 self._variation_number, max_attempts=_MAX_RESET_ATTEMPTS,
                 randomly_place=not self._static_positions)
         except (BoundaryError, WaypointError) as e:
+            logging.error("error while initializing episode", e)
             raise TaskEnvironmentError(
                 'Could not place the task %s in the scene. This should not '
                 'happen, please raise an issues on this task.'
@@ -118,6 +121,7 @@ class TaskEnvironment(object):
                                or len(self._dataset_root) == 0):
             raise RuntimeError(
                 "Can't ask for a stored demo when no dataset root provided.")
+
 
         if not live_demos:
             if self._dataset_root is None or len(self._dataset_root) == 0:
@@ -163,7 +167,7 @@ class TaskEnvironment(object):
                     break
                 except Exception as e:
                     attempts -= 1
-                    logging.info('Bad demo. ' + str(e) + ' Attempts left: ' + str(attempts))
+                    logging.warning('Bad demo. ' + str(e) + ' Attempts left: ' + str(attempts))
             if attempts <= 0:
                 raise RuntimeError(
                     'Could not collect demos. Maybe a problem with the task?')

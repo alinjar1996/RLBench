@@ -20,7 +20,7 @@ class CoordinatedTakeTrayOutOfOven(BimanualTask):
              NothingGrasped(self.robot.right_gripper), NothingGrasped(self.robot.left_gripper)])
 
         self.waypoint_mapping = defaultdict(lambda: 'left')
-        for i in range(5):
+        for i in range(4):
             self.waypoint_mapping[f'waypoint{i}'] = 'right'
 
     def init_episode(self, index: int) -> List[str]:

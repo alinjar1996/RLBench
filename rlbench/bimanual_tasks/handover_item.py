@@ -26,12 +26,12 @@ class HandoverItem(BimanualTask):
     def init_task(self) -> None:
 
         self.items = [Shape(f'item{i}') for i in range(5)]
-        self.register_graspable_objects(self.items[0])
+        self.register_graspable_objects(self.items)
 
         self.waypoint_mapping = defaultdict(lambda: 'left')
         self.waypoint_mapping.update({'waypoint0': 'right', 'waypoint5': 'right'})
 
-        #self.boundaries = SpawnBoundary('handover_item_boundary')
+        self.boundaries = Shape('handover_item_boundary')
 
 
     def init_episode(self, index) -> List[str]:
@@ -48,9 +48,9 @@ class HandoverItem(BimanualTask):
         for i, item in  enumerate(self.items):
             item.set_color(remaining_colors[i][1])
 
-        #b = SpawnBoundary([self.boundaries])
-        #for item in self.items:
-        #    b.sample(item, min_distance=0.1)
+        b = SpawnBoundary([self.boundaries])
+        for item in self.items:
+            b.sample(item, min_distance=0.1)
 
 
         self.register_success_conditions(

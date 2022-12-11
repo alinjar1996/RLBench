@@ -21,7 +21,6 @@ colors = [
 ]
 
 class HandoverItem(BimanualTask):
-    #..todo:: extend to hand over {orange, blue, yellow} item
 
     def init_task(self) -> None:
 
@@ -45,22 +44,21 @@ class HandoverItem(BimanualTask):
         remaining_colors.remove((color_name, color))
         np.random.shuffle(remaining_colors)
 
-        for i, item in  enumerate(self.items):
+        for i, item in enumerate(self.items[1:]):
             item.set_color(remaining_colors[i][1])
 
         b = SpawnBoundary([self.boundaries])
         for item in self.items:
             b.sample(item, min_distance=0.1)
 
-
         self.register_success_conditions(
             [DetectedCondition(self.items[0], success_sensor)])
-        
+
         return [f'bring me the {color_name} item',
                 f'hand over the {color_name} object']
 
     def variation_count(self) -> int:
-        return len(colors)
+        return len(colors) - 1 
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

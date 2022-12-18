@@ -1,5 +1,6 @@
 from typing import List, Callable
 
+
 import numpy as np
 from pyrep import PyRep
 from pyrep.const import ObjectType
@@ -54,7 +55,8 @@ class Scene(object):
         if self.robot.is_bimanual:
             self._start_arm_joint_pos = [robot.right_arm.get_joint_positions(), robot.left_arm.get_joint_positions()]
             self._starting_gripper_joint_pos = [robot.right_gripper.get_joint_positions(), robot.left_gripper.get_joint_positions()]
-            logging.warning("Only using cameras for left arm")
+            logging.warning("Only using wrist camera of the left arm")
+            # ..todo:: implement that also right wrist cameras are used
             name_prefix = 'Panda_leftArm_'
         else:
             self._start_arm_joint_pos = robot.arm.get_joint_positions()
@@ -71,21 +73,27 @@ class Scene(object):
         self._cam_wrist = VisionSensor(f'{name_prefix}cam_wrist')
         self._cam_front = VisionSensor(f'cam_front')
 
+        self.use_mask = False
+        if self.use_mask:
+            self._cam_over_shoulder_left_mask = VisionSensor(
+                    'cam_over_shoulder_left_mask')
+            self._cam_over_shoulder_right_mask = VisionSensor(
+                    'cam_over_shoulder_right_mask')
+            self._cam_overhead_mask = VisionSensor('cam_overhead_mask')
+            self._cam_wrist_mask = VisionSensor(f'{name_prefix}cam_wrist_mask')
+            self._cam_front_mask = VisionSensor(f'cam_front_mask')
+        else:
+            self._cam_over_shoulder_left_mask = VisionSensor(f'cam_front')
+            self._cam_over_shoulder_right_mask = VisionSensor(f'cam_front')
+            self._cam_overhead_mask  = VisionSensor(f'cam_front')
+            self._cam_wrist_mask = VisionSensor(f'cam_front')
+            self._cam_front_mask = VisionSensor(f'cam_front')
 
-        self._cam_over_shoulder_left_mask = VisionSensor(
-                'cam_over_shoulder_left_mask')
-        self._cam_over_shoulder_right_mask = VisionSensor(
-                'cam_over_shoulder_right_mask')
-
-
-        self._cam_overhead_mask = VisionSensor('cam_overhead_mask')
-        self._cam_wrist_mask = VisionSensor(f'{name_prefix}cam_wrist_mask')
-        self._cam_front_mask = VisionSensor(f'cam_front_mask')
-        
 
         self._has_init_task = self._has_init_episode = False
         self._variation_index = 0
 
+        # ..todo:: fixme convert to a list
         if self.robot.is_bimanual:
             self._initial_robot_state = [(robot.right_arm.get_configuration_tree(),
                                      robot.right_gripper.get_configuration_tree()),
@@ -126,6 +134,7 @@ class Scene(object):
         """
         task.load()  # Load the task in to the scene
 
+
         # Set at the centre of the workspace
         task.get_base().set_position(self._workspace.get_position())
 
@@ -157,7 +166,6 @@ class Scene(object):
         """
 
         self._variation_index = index
-
         if not self._has_init_task:
             self.init_task()
 
@@ -171,10 +179,12 @@ class Scene(object):
                         not self.task.is_static_workspace()):
                     self._place_task()
                     if self.robot.is_in_collision():
+                        logging.error("robot is in collision")
                         raise BoundaryError()
                 self.task.validate()
                 break
             except (BoundaryError, WaypointError) as e:
+                logging.error('error when checking waypoints %s', e)
                 self.task.cleanup_()
                 self.task.restore_state(self._initial_task_state)
                 attempts += 1
@@ -207,6 +217,7 @@ class Scene(object):
         arm, gripper = self._initial_robot_state   
         self.pyrep.set_configuration_tree(arm)
         self.pyrep.set_configuration_tree(gripper)
+        
         self.robot.arm.set_joint_positions(self._start_arm_joint_pos, disable_dynamics=True)
         self.robot.gripper.set_joint_positions(
             self._starting_gripper_joint_pos, disable_dynamics=True)
@@ -326,8 +337,6 @@ class Scene(object):
         def get_proprioception(arm: Arm, gripper: Gripper):
             tip = arm.get_tip()
 
-
-
             if self._obs_config.joint_velocities:
                 joint_velocities=np.array(arm.get_joint_velocities())
                 joint_velocities=self._obs_config.joint_velocities_noise.apply(joint_velocities)
@@ -340,7 +349,6 @@ class Scene(object):
             else:
                 joint_positions = None
             
-
             if self._obs_config.joint_forces:
                 fs = arm.get_joint_forces()
                 vels = arm.get_joint_target_velocities()
@@ -466,6 +474,7 @@ class Scene(object):
                     continue
 
                 colliding_shapes = []                
+
                 # ..todo:: check if we can mix colliding shapes
                 if not self.robot.is_bimanual:
                     grasped_objects = self.robot.gripper.get_grasped_objects()
@@ -479,6 +488,8 @@ class Scene(object):
                     for s in self.pyrep.get_objects_in_tree(object_type=ObjectType.SHAPE):
                         if s in grasped_objects:
                             continue
+                        #if s in self._robot_shapes:
+                        #    continue
                         if not s.is_collidable():
                             continue
                         if self.robot.right_arm.check_arm_collision(s):
@@ -486,18 +497,28 @@ class Scene(object):
                         elif self.robot.left_arm.check_arm_collision(s):
                             colliding_shapes.append(s)
                 
-                
 
+                logging.info("got list of colliding objects: %s", colliding_shapes)
+                
                 [s.set_collidable(False) for s in colliding_shapes]
                 try:
                     path = point.get_path()
                     [s.set_collidable(True) for s in colliding_shapes]
                 except ConfigurationPathError as e:
+                    logging.error("unable to get path %s", e)
                     [s.set_collidable(True) for s in colliding_shapes]
                     raise DemoError(
                         'Could not get a path for waypoint %d.' % i,
                         self.task) from e
+
                 ext = point.get_ext()
+
+                logging.info("point.get_ext() %s", str(ext))
+                if self.robot.is_bimanual:
+                    str_ext = str(ext)
+                    if str_ext and not 'left' in str_ext and not 'right' in str_ext:
+                        logging.warning('missing robot for waypoint action "%s"', str_ext)
+
                 path.visualize()
 
                 done = False
@@ -511,6 +532,12 @@ class Scene(object):
                 point.end_of_path()
 
                 path.clear_visualization()
+
+                logging.info("done executing path")
+
+                """
+                Extensions strings are defined in the field under the 'Common Tab' when editing a waypoint
+                """
 
                 if len(ext) > 0:
                     contains_param = False
@@ -546,6 +573,7 @@ class Scene(object):
                         rest = ext[start_of_bracket:]
                         num = float(rest[:rest.index(')')])
                         done = False
+                        logging.warning("not tested yet")
                         while not done:
                             done = self.robot.actutate_gripper(num, 0.04, name)
                             self.pyrep.step()
@@ -635,24 +663,25 @@ class Scene(object):
             self._cam_front, self._obs_config.front_camera.rgb,
             self._obs_config.front_camera.depth,
             self._obs_config.front_camera)
-        _set_mask_props(
-            self._cam_over_shoulder_left_mask,
-            self._obs_config.left_shoulder_camera.mask,
-            self._obs_config.left_shoulder_camera)
-        _set_mask_props(
-            self._cam_over_shoulder_right_mask,
-            self._obs_config.right_shoulder_camera.mask,
-            self._obs_config.right_shoulder_camera)
-        _set_mask_props(
-            self._cam_overhead_mask,
-            self._obs_config.overhead_camera.mask,
-            self._obs_config.overhead_camera)
-        _set_mask_props(
-            self._cam_wrist_mask, self._obs_config.wrist_camera.mask,
-            self._obs_config.wrist_camera)
-        _set_mask_props(
-            self._cam_front_mask, self._obs_config.front_camera.mask,
-            self._obs_config.front_camera)
+        if self.use_mask:
+            _set_mask_props(
+                self._cam_over_shoulder_left_mask,
+                self._obs_config.left_shoulder_camera.mask,
+                self._obs_config.left_shoulder_camera)
+            _set_mask_props(
+                self._cam_over_shoulder_right_mask,
+                self._obs_config.right_shoulder_camera.mask,
+                self._obs_config.right_shoulder_camera)
+            _set_mask_props(
+                self._cam_overhead_mask,
+                self._obs_config.overhead_camera.mask,
+                self._obs_config.overhead_camera)
+            _set_mask_props(
+                self._cam_wrist_mask, self._obs_config.wrist_camera.mask,
+                self._obs_config.wrist_camera)
+            _set_mask_props(
+                self._cam_front_mask, self._obs_config.front_camera.mask,
+                self._obs_config.front_camera)
 
     def _place_task(self) -> None:
         self._workspace_boundary.clear()
@@ -674,6 +703,8 @@ class Scene(object):
                     '%s_near' % name: cam.get_near_clipping_plane(),
                     '%s_far' % name: cam.get_far_clipping_plane(),
                 }
+            else:
+                logging.warning("Camera no longer exists %s", name)
             return d
         misc = _get_cam_data(self._cam_over_shoulder_left, 'left_shoulder_camera')
         misc.update(_get_cam_data(self._cam_over_shoulder_right, 'right_shoulder_camera'))

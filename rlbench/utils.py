@@ -14,6 +14,8 @@ from rlbench.backend.utils import image_to_float_array, rgb_handles_to_mask
 from rlbench.demo import Demo
 from rlbench.observation_config import ObservationConfig
 
+import logging
+
 
 class InvalidTaskName(Exception):
     pass
@@ -114,13 +116,15 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
             obs_config.wrist_camera.real_camera
 
         if not real_cameras:
-            if not (num_steps == len(listdir(l_sh_rgb_f)) == len(
-                    listdir(l_sh_depth_f)) == len(listdir(r_sh_rgb_f)) == len(
-                    listdir(r_sh_depth_f)) == len(listdir(oh_rgb_f)) == len(
-                    listdir(oh_depth_f)) == len(listdir(wrist_rgb_f)) == len(
-                    listdir(wrist_depth_f)) == len(listdir(front_rgb_f)) == len(
-                    listdir(front_depth_f))):
-                raise RuntimeError('Broken dataset assumption')
+            folders = [l_sh_rgb_f, l_sh_depth_f, r_sh_rgb_f, r_sh_depth_f, oh_rgb_f, oh_depth_f, wrist_rgb_f, wrist_depth_f, front_rgb_f]
+            num_image_files = map(lambda d: len(listdir(d)), folders)
+            print(list(num_image_files))
+            num_image_files = np.asarray(list(num_image_files), dtype=np.int32)
+
+            if not np.all(num_image_files == num_steps):
+                logging.error("Not all images have been recorded folders=%s and num_image_files=%s", folders, num_image_files)
+                #..fixme::
+                #raise RuntimeError('Broken dataset assumption')
 
         for i in range(num_steps):
             si = IMAGE_FORMAT % i

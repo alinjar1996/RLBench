@@ -2,6 +2,22 @@ from abc import abstractmethod
 import numpy as np
 
 from dataclasses import dataclass
+from enum import Enum
+
+
+class ImageType(Enum):
+    RGB = 1
+    DEPTH = 2
+    MASK = 3
+
+@dataclass
+class CameraImage:
+    
+    name: str
+    dtype: ImageType
+    data: np.ndarray
+
+
 
 @dataclass
 class Observation:
@@ -37,6 +53,8 @@ class Observation:
         pass
 
 
+#..todo:: rename to ProprioceptionObservation
+
 @dataclass 
 class UnimodalObservationData:
 
@@ -51,7 +69,6 @@ class UnimodalObservationData:
 
     ignore_collisions: np.ndarray
 
-    
 @dataclass
 class UnimodalObservation(UnimodalObservationData, Observation):
     
@@ -60,7 +77,6 @@ class UnimodalObservation(UnimodalObservationData, Observation):
     def is_bimanual(self):
         return False
 
-    
 
     def get_low_dim_data(self) -> np.ndarray:
         """Gets a 1D array of all the low-dimensional obseervations.
@@ -83,11 +99,9 @@ class BimanualObservation(Observation):
     right: UnimodalObservationData = None
     left: UnimodalObservationData = None
 
-
     @Observation.is_bimanual.getter
     def is_bimanual(self):
         return True
-
 
     def get_low_dim_data(self, robot: UnimodalObservationData) -> np.ndarray:
         """Gets a 1D array of all the low-dimensional obseervations.

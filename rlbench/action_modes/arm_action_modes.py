@@ -5,6 +5,9 @@ from pyquaternion import Quaternion
 from pyrep.const import ConfigurationPathAlgorithms as Algos
 from pyrep.errors import ConfigurationPathError, IKError
 from pyrep.const import ObjectType
+from pyrep.objects.dummy import Dummy
+from pyrep.objects.object import Object
+from pyrep.objects.shape import Shape
 from pyrep.robots.arms.arm import Arm
 from pyrep.robots.end_effectors.gripper import Gripper
 
@@ -239,7 +242,6 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
     
 
     def get_path(self, scene: Scene, action: np.ndarray, ignore_collisions: bool, arm: Arm, gripper: Gripper):
-        logging.warning("Not fully implemented yet.")
         if not self._absolute_mode and self._frame != 'end effector':
             action = calculate_delta_pose(scene.robot, action)
         relative_to = None if self._frame == 'world' else arm.get_tip()
@@ -326,6 +328,13 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
         right_done = True
         left_done = True
 
+        #logging.warning("FIXME DEBUGGING")
+        #o = Shape("item")
+        #o.set_position(right_action[:3])
+        #o.set_position(right_action[3:])
+#
+        #logging.warning("FIXME END")
+   
         try:
             right_path = self.get_path(scene, right_action, right_ignore_collision, scene.robot.right_arm, scene.robot.right_gripper)
             if right_path:

@@ -46,7 +46,9 @@ class Waypoint(object):
             self._end_of_path_func(self)
 
     def __str__(self):
-        return f"{self._waypoint} - {self._arm}"
+        waypoint_name = self._waypoint.get_object_name(self._waypoint._handle)
+        arm_name = self._arm.get_object_name(self._arm._handle)
+        return f"{waypoint_name} - {arm_name}"
 
 
 

@@ -53,7 +53,7 @@ class ObservationConfig(object):
                  gripper_touch_forces=False,
                  wrist_camera_matrix=False,
                  record_gripper_closing=False,
-                 task_low_dim_state=False,
+                 task_low_dim_state=True,
                  record_ignore_collisions=True,
                  ):
         self.left_shoulder_camera = (

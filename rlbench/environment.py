@@ -106,7 +106,13 @@ class Environment(object):
         else:
             self._pyrep.launch(join(DIR_PATH, TTT_FILE), headless=self._headless)
 
+        # ..TODO not sure if this helps
+        self._pyrep.step_ui()
 
+        #import time
+        #for i in range(20):
+        #    self._pyrep.step_ui()
+        #    time.sleep(1)
 
         arm_class, gripper_class, _ = SUPPORTED_ROBOTS[
             self._robot_setup]
@@ -229,6 +235,7 @@ class Environment(object):
 
         def _get_cam_info(cam: VisionSensor):
             if not cam.still_exists():
+                logging.warning("Camera no longer exists")
                 return None
             intrinsics = cam.get_intrinsic_matrix()
             return dict(

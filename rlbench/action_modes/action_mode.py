@@ -30,6 +30,7 @@ class MoveArmThenGripper(ActionMode):
     """The arm action is first applied, followed by the gripper action. """
 
     def action(self, scene: Scene, action: np.ndarray):
+        assert(len(action) == 9)
         arm_act_size = np.prod(self.arm_action_mode.action_shape(scene))
         arm_action = np.array(action[:arm_act_size])
         ee_action = np.array(action[arm_act_size:arm_act_size+1])
@@ -47,11 +48,15 @@ class BimanualMoveArmThenGripper(MoveArmThenGripper):
 
     def action(self, scene: Scene, action: np.ndarray):
 
+        assert(len(action) == 18)
+
         arm_action_size = np.prod(self.arm_action_mode.unimanual_action_shape(scene))
         ee_action_size = np.prod(self.gripper_action_mode.unimanual_action_shape(scene))
         ignore_collisions_size = 1
 
         action_size = arm_action_size + ee_action_size + ignore_collisions_size
+
+        assert(action_size == 9)
 
         right_action = action[:action_size]
         left_action = action[action_size:]

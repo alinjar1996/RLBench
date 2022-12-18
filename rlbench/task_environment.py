@@ -51,6 +51,8 @@ class TaskEnvironment(object):
         self._pyrep.start()
 
         if self._robot.is_bimanual:
+             #..fixme
+            logging.warning("not sure how _robot_shapes are used is used.")
             self._robot_shapes = self._robot.right_arm.get_objects_in_tree(object_type=ObjectType.SHAPE) + self._robot.left_arm.get_objects_in_tree(object_type=ObjectType.SHAPE)
         else:
             self._robot_shapes = self._robot.arm.get_objects_in_tree(object_type=ObjectType.SHAPE)

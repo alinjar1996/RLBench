@@ -13,19 +13,16 @@ colors = [
     ('red', (1.0, 0.0, 0.0)),
     ('green', (0.0, 1.0, 0.0)),
     ('blue', (0.0, 0.0, 1.0)),
-    ('yellow', (1.0, 1.0, 0.0)),
-    #('olive', (0.5, 0.5, 0.0)),
-    ('purple', (0.5, 0.0, 0.5)),
-    #('teal', (0, 0.5, 0.5)),
-    #('black', (0.0, 0.0, 0.0)),
-    #('white', (1.0, 1.0, 1.0)),
 ]
 
-class HandoverItem(BimanualTask):
+class HandoverItemEasy(BimanualTask):
 
     def init_task(self) -> None:
 
-        self.items = [Shape(f'item{i}') for i in range(5)]
+        self.items = [Shape(f'item{i}') for i in range(3)]
+
+        for i, (_, color) in enumerate(colors):
+            self.items[i].set_color(color)
 
         self.register_graspable_objects(self.items)
 
@@ -35,26 +32,30 @@ class HandoverItem(BimanualTask):
         self.boundaries = Shape('handover_item_boundary')
 
 
-    def init_episode(self, index:  int) -> List[str]:
+    def init_episode(self, index: int) -> List[str]:
 
         success_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
 
-        color_name, color = colors[index]
-        self.items[0].set_color(color)
+        color_name, _color = colors[index]
 
-        remaining_colors = colors.copy()
-        remaining_colors.remove((color_name, color))
-        np.random.shuffle(remaining_colors)
+        w0 = Dummy('waypoint2')
+        w0.set_position([0.0, 0.0, -0.025], relative_to=self.items[index], reset_dynamics=False)
+        #w0.set_orientation([-np.pi, 0, -np.pi], relative_to=self.items[index], reset_dynamics=False)
 
-        for i, item in enumerate(self.items[1:]):
-            item.set_color(remaining_colors[i][1])
+        w1 = Dummy('waypoint1')
+        w1.set_position([0.0, 0.0, 0.1], relative_to=self.items[index], reset_dynamics=False)
 
-        b = SpawnBoundary([self.boundaries])
-        for item in self.items:
-            b.sample(item, min_distance=0.15)
+        w3 = Dummy('waypoint3')
+        w3.set_position([0.0, 0.0, 0.1], relative_to=self.items[index], reset_dynamics=False)
+
+
+
+        #b = SpawnBoundary([self.boundaries])
+        #for item in self.items:
+        #    b.sample(item, min_distance=0.1)
 
         self.register_success_conditions(
-            [DetectedCondition(self.items[0], success_sensor)])
+            [DetectedCondition(self.items[index], success_sensor)])
 
         return [f'bring me the {color_name} item',
                 f'hand over the {color_name} object']

@@ -52,6 +52,7 @@ class HandoverItem(BimanualTask):
             item.set_color(remaining_colors[i][1])
 
         b = SpawnBoundary([self.boundaries])
+        b.clear()
         for item in self.items:
             b.sample(item, min_distance=0.15)
 

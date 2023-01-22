@@ -53,6 +53,7 @@ class HandoverItemEasy(BimanualTask):
 
 
         #b = SpawnBoundary([self.boundaries])
+        #b.clear()
         #for item in self.items:
         #    b.sample(item, min_distance=0.1)
 

@@ -89,6 +89,9 @@ class DualPushButtons(BimanualTask):
 
 
     def init_episode(self, index: int) -> List[str]:
+
+        self._variation_index = index
+
         for tp in self.target_topPlates:
             tp.set_color([1.0, 0.0, 0.0])
         for w in self.target_wraps:

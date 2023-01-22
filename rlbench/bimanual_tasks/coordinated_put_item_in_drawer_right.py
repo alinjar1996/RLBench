@@ -27,6 +27,7 @@ class CoordinatedPutItemInDrawerRight(BimanualTask):
 
 
     def init_episode(self, index) -> List[str]:
+        self._variation_index = index
         option = self._options[index]
         anchor = self._anchors[index]
         self._waypoint1.set_position(anchor.get_position())
@@ -39,7 +40,7 @@ class CoordinatedPutItemInDrawerRight(BimanualTask):
                 'leave the block in the %s drawer' % option]
 
     def variation_count(self) -> int:
-        return 3
+        return 3 #len(self._options)
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

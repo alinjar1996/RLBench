@@ -19,6 +19,9 @@ class LeftOpenDrawer(BimanualTask):
         self.waypoint_mapping = defaultdict(lambda: 'left')
 
     def init_episode(self, index: int) -> List[str]:
+
+        self._variation_index = index
+
         option = self._options[index]
         self._waypoint1.set_position(self._anchors[index].get_position())
         self.register_success_conditions(

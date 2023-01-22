@@ -33,6 +33,7 @@ class CoordinatedCloseJar(BimanualTask):
             self.waypoint_mapping[f'waypoint{i}'] = 'right'
 
     def init_episode(self, index: int) -> List[str]:
+        self._variation_index = index
         b = SpawnBoundary([self.boundary])
         for obj in self.jars:
             print(f"print sampling for jar {obj}")

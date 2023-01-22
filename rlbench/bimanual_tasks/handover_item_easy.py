@@ -34,6 +34,8 @@ class HandoverItemEasy(BimanualTask):
 
     def init_episode(self, index: int) -> List[str]:
 
+        self._variation_index = index
+
         success_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
 
         color_name, _color = colors[index]

@@ -83,7 +83,7 @@ class TaskEnvironment(object):
                 self._variation_number, max_attempts=_MAX_RESET_ATTEMPTS,
                 randomly_place=not self._static_positions)
         except (BoundaryError, WaypointError) as e:
-            logging.error("error while initializing episode", e)
+            logging.error("error while initializing episode: %s", e)
             raise TaskEnvironmentError(
                 'Could not place the task %s in the scene. This should not '
                 'happen, please raise an issues on this task.'

@@ -455,6 +455,10 @@ class Scene(object):
                               randomly_place=randomly_place)
         self._has_init_episode = False
 
+
+        def do_record():
+            self._demo_record_step(demo, record, callable_each_step)
+
         waypoints = self.task.get_waypoints()
         if len(waypoints) == 0:
             raise NoWaypointsError(
@@ -526,7 +530,7 @@ class Scene(object):
                 while not done:
                     done = path.step()
                     self.step()
-                    self._demo_record_step(demo, record, callable_each_step)
+                    do_record()
                     success, term = self.task.success()
 
                 point.end_of_path()
@@ -535,58 +539,9 @@ class Scene(object):
 
                 logging.info("done executing path")
 
-                """
-                Extensions strings are defined in the field under the 'Common Tab' when editing a waypoint
-                """
-
                 if len(ext) > 0:
-                    contains_param = False
-                    start_of_bracket = -1
-                    name = ext.split('_', maxsplit=1)[0]
-                    if 'open_gripper(' in ext:
-                        self.robot.release_gripper(name)
-                        start_of_bracket = ext.index('open_gripper(') + 13
-                        contains_param = ext[start_of_bracket] != ')'
-                        if not contains_param:
-                            done = False
-                            while not done:
-                                done = self.robot.actutate_gripper(1.0, 0.04, name)
-                                self.pyrep.step()
-                                self.task.step()
-                                if self._obs_config.record_gripper_closing:
-                                    self._demo_record_step(
-                                        demo, record, callable_each_step)
-                    elif 'close_gripper(' in ext:
-                        start_of_bracket = ext.index('close_gripper(') + 14
-                        contains_param = ext[start_of_bracket] != ')'
-                        if not contains_param:
-                            done = False
-                            while not done:
-                                done = self.robot.actutate_gripper(0.0, 0.04, name)
-                                self.pyrep.step()
-                                self.task.step()
-                                if self._obs_config.record_gripper_closing:
-                                    self._demo_record_step(
-                                        demo, record, callable_each_step)
-
-                    if contains_param:
-                        rest = ext[start_of_bracket:]
-                        num = float(rest[:rest.index(')')])
-                        done = False
-                        logging.warning("not tested yet")
-                        while not done:
-                            done = self.robot.actutate_gripper(num, 0.04, name)
-                            self.pyrep.step()
-                            self.task.step()
-                            if self._obs_config.record_gripper_closing:
-                                self._demo_record_step(
-                                    demo, record, callable_each_step)
-
-                    if 'close_gripper(' in ext:
-                        for g_obj in self.task.get_graspable_objects():
-                            self.robot.grasp(g_obj, name)
-
-                    self._demo_record_step(demo, record, callable_each_step)
+                    self._handle_extensions_strings(ext, do_record)
+      
 
             if not self.task.should_repeat_waypoints() or success:
                 break
@@ -597,7 +552,7 @@ class Scene(object):
             for _ in range(10):
                 self.pyrep.step()
                 self.task.step()
-                self._demo_record_step(demo, record, callable_each_step)
+                do_record()
                 success, term = self.task.success()
                 if success:
                     break
@@ -607,6 +562,54 @@ class Scene(object):
             raise DemoError('Demo was completed, but was not successful.',
                             self.task)
         return Demo(demo)
+    
+    def _handle_extensions_strings(self, ext, do_record):
+        """
+        Extensions strings are defined in the field under the 'Common Tab' when editing a waypoint
+        """
+        contains_param = False
+        start_of_bracket = -1
+        name = ext.split('_', maxsplit=1)[0]
+        if 'open_gripper(' in ext:
+            self.robot.release_gripper(name)
+            start_of_bracket = ext.index('open_gripper(') + 13
+            contains_param = ext[start_of_bracket] != ')'
+            if not contains_param:
+                done = False
+                while not done:
+                    done = self.robot.actutate_gripper(1.0, 0.04, name)
+                    self.pyrep.step()
+                    self.task.step()
+                    if self._obs_config.record_gripper_closing:
+                        do_record()
+        elif 'close_gripper(' in ext:
+            start_of_bracket = ext.index('close_gripper(') + 14
+            contains_param = ext[start_of_bracket] != ')'
+            if not contains_param:
+                done = False
+                while not done:
+                    done = self.robot.actutate_gripper(0.0, 0.04, name)
+                    self.pyrep.step()
+                    self.task.step()
+                    if self._obs_config.record_gripper_closing:
+                        do_record()
+
+        if contains_param:
+            rest = ext[start_of_bracket:]
+            num = float(rest[:rest.index(')')])
+            done = False
+            logging.warning("not tested yet")
+            while not done:
+                done = self.robot.actutate_gripper(num, 0.04, name)
+                self.pyrep.step()
+                self.task.step()
+                if self._obs_config.record_gripper_closing:
+                    do_record()
+
+        if 'close_gripper(' in ext:
+            for g_obj in self.task.get_graspable_objects():
+                self.robot.grasp(g_obj, name)
+        do_record()
 
     def get_observation_config(self) -> ObservationConfig:
         return self._obs_config

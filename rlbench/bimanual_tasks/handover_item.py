@@ -8,6 +8,8 @@ from rlbench.backend.conditions import DetectedCondition
 from rlbench.backend.task import BimanualTask
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from pyrep.objects.dummy import Dummy
+from rlbench.backend.exceptions import BoundaryError
+from absl import logging
 
 colors = [
     ('red', (1.0, 0.0, 0.0)),
@@ -52,9 +54,14 @@ class HandoverItem(BimanualTask):
             item.set_color(remaining_colors[i][1])
 
         b = SpawnBoundary([self.boundaries])
+        b.MAX_SAMPLES = 1000
         b.clear()
         for item in self.items:
-            b.sample(item, min_distance=0.15)
+            try:
+                b.sample(item, min_distance=0.15)
+            except BoundaryError as b:
+                logging.warning("error %s", b)
+                b.sample(item, ignore_collisions=True, min_distance=0.05)
 
         self.register_success_conditions(
             [DetectedCondition(self.items[0], success_sensor)])

@@ -36,6 +36,14 @@ from rlbench.utils import name_to_task_class
 from tools.task_validator import task_smoke, TaskValidationError
 import shutil
 
+
+from yarr.utils.video_utils import CircleCameraMotion
+from yarr.utils.video_utils import TaskRecorder
+
+from pyrep.objects.dummy import Dummy
+from pyrep.objects.vision_sensor import VisionSensor
+
+
 CURRENT_DIR = dirname(abspath(__file__))
 
 
@@ -161,6 +169,37 @@ class LoadedTask(object):
             self.scene.reset()
         self.pr.step_ui()
 
+
+    def record_demo(self):
+        cam_placeholder = Dummy('cam_cinematic_placeholder')
+        cam = VisionSensor.create([1280, 720])
+        cam.set_pose(cam_placeholder.get_pose())
+        cam.set_parent(cam_placeholder)
+
+        cam_motion = CircleCameraMotion(cam, Dummy('cam_cinematic_base'), 0.005)
+        tr = TaskRecorder(None, cam_motion, fps=30)
+
+        try:
+            self.scene.get_demo(False, callable_each_step=tr.take_snap, randomly_place=False)
+        except (WaypointError, NoWaypointsError, DemoError, Exception) as e:
+            traceback.print_exc()
+        success, terminate = self.task.success()
+
+
+        recording_output_path = f"/tmp/rlbench_video_{self.task_file}.mp4" 
+
+        tr.save(recording_output_path, f"Demo for task {self.task_file} success={success}", 1    )
+
+        print(f"Saving video to {recording_output_path}")
+
+        if success:
+            print("Demo was a success!")
+        self.scene.reset()
+        self.pr.step_ui()
+
+
+
+
     def new_demo(self):
         try:
             self.scene.get_demo(False, randomly_place=False)
@@ -284,6 +323,10 @@ def get_all_available_tasks():
     return [t.replace('.py', '') for t in os.listdir(task.BIMANUAL_TASKS_PATH)
                   if t != '__init__.py' and t.endswith('.py')]
 
+
+
+
+
 if __name__ == '__main__':
 
 
@@ -329,6 +372,7 @@ if __name__ == '__main__':
             print('(v) for task variation.')
             print('(e) for episode of same variation.')
             print('(d) for demo.')
+            print('(r) record a video of the demo.')
             print('(p) for running the sim for 100 steps (with rendering).')
         else:
             print('(!) to run task validator.')
@@ -351,6 +395,10 @@ if __name__ == '__main__':
                 [(pr.step(), scene.get_observation()) for _ in range(100)]
             elif inp == 'd':
                 loaded_task.new_demo()
+                input('Press enter to continue')       
+            elif inp == 'r':
+                loaded_task.record_demo()
+                input('Press enter to continue')            
             elif inp == 'v':
                 loaded_task.new_variation()
             elif inp == 'e':

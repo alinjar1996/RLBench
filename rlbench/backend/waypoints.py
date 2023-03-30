@@ -45,6 +45,10 @@ class Waypoint(object):
         if self._end_of_path_func is not None:
             self._end_of_path_func(self)
 
+    @property
+    def name(self) -> str:
+        return self._waypoint.get_object_name(self._waypoint._handle)
+
     def __str__(self):
         waypoint_name = self._waypoint.get_object_name(self._waypoint._handle)
         arm_name = self._arm.get_object_name(self._arm._handle)

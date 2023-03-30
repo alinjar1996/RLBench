@@ -250,6 +250,7 @@ class Scene(object):
             (rgb_handles_to_mask if c.masks_as_one_channel else lambda x: x
              ) for c in [lsc_ob, rsc_ob, oc_ob, wc_ob, fc_ob]]
 
+        # ..todo:: extract methods
         def get_rgb_depth(sensor: VisionSensor, get_rgb: bool, get_depth: bool,
                           get_pcd: bool, rgb_noise: NoiseModel,
                           depth_noise: NoiseModel, depth_in_meters: bool):
@@ -443,31 +444,12 @@ class Scene(object):
     def register_step_callback(self, func):
         self._step_callback = func
 
-    def get_demo(self, record: bool = True,
-                 callable_each_step: Callable[[Observation], None] = None,
-                 randomly_place: bool = True) -> Demo:
-        """Returns a demo (list of observations)"""
-
-        if not self._has_init_task:
-            self.init_task()
-        if not self._has_init_episode:
-            self.init_episode(self._variation_index,
-                              randomly_place=randomly_place)
-        self._has_init_episode = False
-
-
-        def do_record():
-            self._demo_record_step(demo, record, callable_each_step)
-
+    def execute_waypoints_unimanual(self, do_record) -> bool:
         waypoints = self.task.get_waypoints()
         if len(waypoints) == 0:
             raise NoWaypointsError(
                 'No waypoints were found.', self.task)
 
-        demo = []
-        if record:
-            self.pyrep.step()  # Need this here or get_force doesn't work...
-            demo.append(self.get_observation())
         while True:
             success = False
             self._ignore_collisions_for_current_waypoint = False
@@ -479,28 +461,12 @@ class Scene(object):
 
                 colliding_shapes = []                
 
-                # ..todo:: check if we can mix colliding shapes
-                if not self.robot.is_bimanual:
-                    grasped_objects = self.robot.gripper.get_grasped_objects()
-                    colliding_shapes = [s for s in self.pyrep.get_objects_in_tree(
-                    object_type=ObjectType.SHAPE) if s not in grasped_objects
-                                    and s not in self._robot_shapes and s.is_collidable()
-                                    and self.robot.arm.check_arm_collision(s)]
-                else:
-                    grasped_objects = self.robot.right_gripper.get_grasped_objects() + self.robot.left_gripper.get_grasped_objects()
-                    colliding_shapes = []
-                    for s in self.pyrep.get_objects_in_tree(object_type=ObjectType.SHAPE):
-                        if s in grasped_objects:
-                            continue
-                        #if s in self._robot_shapes:
-                        #    continue
-                        if not s.is_collidable():
-                            continue
-                        if self.robot.right_arm.check_arm_collision(s):
-                            colliding_shapes.append(s)
-                        elif self.robot.left_arm.check_arm_collision(s):
-                            colliding_shapes.append(s)
-                
+                grasped_objects = self.robot.gripper.get_grasped_objects()
+                colliding_shapes = [s for s in self.pyrep.get_objects_in_tree(
+                object_type=ObjectType.SHAPE) if s not in grasped_objects
+                                and s not in self._robot_shapes and s.is_collidable()
+                                and self.robot.arm.check_arm_collision(s)]
+            
 
                 logging.info("got list of colliding objects: %s", colliding_shapes)
                 
@@ -518,10 +484,6 @@ class Scene(object):
                 ext = point.get_ext()
 
                 logging.info("point.get_ext() %s", str(ext))
-                if self.robot.is_bimanual:
-                    str_ext = str(ext)
-                    if str_ext and not 'left' in str_ext and not 'right' in str_ext:
-                        logging.warning('missing robot for waypoint action "%s"', str_ext)
 
                 path.visualize()
 
@@ -534,9 +496,7 @@ class Scene(object):
                     success, term = self.task.success()
 
                 point.end_of_path()
-
                 path.clear_visualization()
-
                 logging.info("done executing path")
 
                 if len(ext) > 0:
@@ -544,7 +504,133 @@ class Scene(object):
       
 
             if not self.task.should_repeat_waypoints() or success:
-                break
+                return success
+
+
+    def execute_waypoints_bimanual(self, do_record) -> bool:
+        right_waypoints = self.task.right_waypoints
+        left_waypoints = self.task.left_waypoints
+
+        for i, right_point in enumerate(right_waypoints.copy()):
+            ext = right_point.get_ext()
+            if 'repeat' in ext:
+                j = ext.rsplit('_', maxsplit=1)
+                j = int(j[-1])
+                for _ in range(j):
+                    right_waypoints.insert(i, right_point)
+
+
+        for i, left_point in enumerate(left_waypoints.copy()):
+            ext = left_point.get_ext()
+            if 'repeat' in ext:
+                j = ext.rsplit('_', maxsplit=1)
+                j = int(j[-1])
+                for _ in range(j):
+                    left_waypoints.insert(i, left_point)
+
+        while len(left_waypoints) > len(right_waypoints):
+            right_waypoints.append(right_waypoints[-1])
+
+        while len(right_waypoints) > len(left_waypoints):
+            left_waypoints.append(left_waypoints[-1])
+
+        
+        while True:
+            success = False
+            self._ignore_collisions_for_current_waypoint = False
+            # ..fixme:: some waypoints might be skipped due to zip -> add dummy waypoints
+            for i, (right_point, left_point) in enumerate(zip(right_waypoints, left_waypoints)):
+                self._ignore_collisions_for_current_waypoint = right_point._ignore_collisions or left_point._ignore_collisions
+                right_point.start_of_path()
+                left_point.start_of_path()
+                if right_point.skip or left_point.skip:
+                    print("skipping waypoints!")
+                    logging.error("skipping waypoints!")
+                    continue
+        
+                grasped_objects = self.robot.right_gripper.get_grasped_objects() + self.robot.left_gripper.get_grasped_objects()
+                colliding_shapes = []
+                for s in self.pyrep.get_objects_in_tree(object_type=ObjectType.SHAPE):
+                    if s in grasped_objects:
+                        continue
+                    #if s in self._robot_shapes:
+                    #    continue
+                    if not s.is_collidable():
+                        continue
+                    if self.robot.right_arm.check_arm_collision(s):
+                        colliding_shapes.append(s)
+                    elif self.robot.left_arm.check_arm_collision(s):
+                        colliding_shapes.append(s)
+                
+                logging.info("got list of colliding objects: %s", colliding_shapes)
+                
+                [s.set_collidable(False) for s in colliding_shapes]
+                try:
+                    right_path = right_point.get_path()
+                    left_path = left_point.get_path()
+                except ConfigurationPathError as e:
+                    logging.error("unable to get path %s", e)                    
+                    raise DemoError(f'Could not get a path for waypoint {right_point.name}.') from e
+                finally:
+                    [s.set_collidable(True) for s in colliding_shapes]
+
+                right_ext = right_point.get_ext()
+                left_ext = left_point.get_ext()
+
+                right_path.visualize()
+                left_path.visualize()
+
+                right_done = False
+                left_done = False
+                success = False
+                while not (right_done and left_done):
+                    if not right_done and right_path.step():                
+                        right_point.end_of_path()
+                        right_path.clear_visualization()
+                        self._handle_extensions_strings(right_ext, do_record)
+                        right_done = True
+
+                    if not left_done and left_path.step():
+                        left_point.end_of_path()
+                        left_path.clear_visualization()
+                        self._handle_extensions_strings(left_ext, do_record)
+                        left_done = True
+
+                    self.step()
+                    do_record()
+                    success, term = self.task.success()
+
+            if not self.task.should_repeat_waypoints() or success:
+                return success
+
+
+    def get_demo(self, record: bool = True,
+                 callable_each_step: Callable[[Observation], None] = None,
+                 randomly_place: bool = True) -> Demo:
+        """Returns a demo (list of observations)"""
+
+        if not self._has_init_task:
+            self.init_task()
+        if not self._has_init_episode:
+            self.init_episode(self._variation_index,
+                              randomly_place=randomly_place)
+        self._has_init_episode = False
+
+        demo = []
+
+        def do_record():
+            self._demo_record_step(demo, record, callable_each_step)
+
+        if record:
+            self.pyrep.step()  # Need this here or get_force doesn't work...
+            demo.append(self.get_observation())
+
+        success = False
+        if self.robot.is_bimanual:
+            success = self.execute_waypoints_bimanual(do_record)
+        else:
+            success = self.execute_waypoints_unimanual(do_record)
+            
 
         # Some tasks may need additional physics steps
         # (e.g. ball rowling to goal)
@@ -567,6 +653,9 @@ class Scene(object):
         """
         Extensions strings are defined in the field under the 'Common Tab' when editing a waypoint
         """
+        if len(ext) == 0:
+            return
+
         contains_param = False
         start_of_bracket = -1
         name = ext.split('_', maxsplit=1)[0]

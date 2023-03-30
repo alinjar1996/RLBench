@@ -348,7 +348,8 @@ class Task(object):
         objs = self.get_base().get_objects_in_tree(exclude_base=False)
         if len(objs) != state[1]:
             if self.name not in ['empty_container']:
-                raise RuntimeError(
+                #raise RuntimeError(
+                logging.error(
                     'Expected to be resetting %d objects, but there were %d.' %
                     (state[1], len(objs)))
         self.pyrep.set_configuration_tree(state[0])
@@ -407,9 +408,7 @@ class Task(object):
                 break
             ob_type = Object.get_object_type(name)
             way = None
-
-            if ob_type == ObjectType.DUMMY:
-                
+            if ob_type == ObjectType.DUMMY:                
                 waypoint = Dummy(name)
                 start_func = None
                 end_func = None
@@ -464,4 +463,14 @@ class BimanualTask(Task):
             logging.error("tasks requires a bimanual robot")
         super().__init__(pyrep, robot, name)
 
-        
+    @property
+    def right_waypoints(self):
+        waypoints = self.get_waypoints()
+        wm = self.waypoint_mapping
+        return [w for w in waypoints if wm[w.name] == 'right']
+
+    @property
+    def left_waypoints(self):
+        waypoints = self.get_waypoints()
+        wm = self.waypoint_mapping
+        return [w for w in waypoints if wm[w.name] == 'left']

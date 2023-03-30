@@ -9,22 +9,14 @@ from rlbench.backend.task import BimanualTask
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from pyrep.objects.dummy import Dummy
 
-colors = [
-    ('red', (1.0, 0.0, 0.0)),
-    ('green', (0.0, 1.0, 0.0)),
-    ('blue', (0.0, 0.0, 1.0)),
-]
 
 class HandoverItemEasy(BimanualTask):
 
     def init_task(self) -> None:
 
-        self.items = [Shape(f'item{i}') for i in range(3)]
+        self.item = Shape('item')
 
-        for i, (_, color) in enumerate(colors):
-            self.items[i].set_color(color)
-
-        self.register_graspable_objects(self.items)
+        self.register_graspable_objects([self.item])
 
         self.waypoint_mapping = defaultdict(lambda: 'left')
         self.waypoint_mapping.update({'waypoint0': 'right', 'waypoint5': 'right'})
@@ -38,33 +30,18 @@ class HandoverItemEasy(BimanualTask):
 
         success_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
 
-        color_name, _color = colors[index]
-
-        w0 = Dummy('waypoint2')
-        w0.set_position([0.0, 0.0, -0.025], relative_to=self.items[index], reset_dynamics=False)
-        #w0.set_orientation([-np.pi, 0, -np.pi], relative_to=self.items[index], reset_dynamics=False)
-
-        w1 = Dummy('waypoint1')
-        w1.set_position([0.0, 0.0, 0.1], relative_to=self.items[index], reset_dynamics=False)
-
-        w3 = Dummy('waypoint3')
-        w3.set_position([0.0, 0.0, 0.1], relative_to=self.items[index], reset_dynamics=False)
-
-
-
         #b = SpawnBoundary([self.boundaries])
         #b.clear()
-        #for item in self.items:
         #    b.sample(item, min_distance=0.1)
 
         self.register_success_conditions(
-            [DetectedCondition(self.items[index], success_sensor)])
+            [DetectedCondition(self.item, success_sensor)])
 
-        return [f'bring me the {color_name} item',
-                f'hand over the {color_name} object']
+        return [f'bring me the item',
+                f'hand over the object']
 
     def variation_count(self) -> int:
-        return len(colors)
+        return 1
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

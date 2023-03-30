@@ -11,7 +11,6 @@ from rlbench.backend.conditions import JointCondition, ConditionSet
 from rlbench.backend.task import BimanualTask
 from collections import defaultdict
 
-MAX_TARGET_BUTTONS = 3
 MAX_VARIATIONS = 50
 
 # button top plate and wrapper will be be red before task completion
@@ -38,9 +37,7 @@ colors = [
     ('white', (1.0, 1.0, 1.0)),
 ]
 
-robot_human_names = {'right': 'alice', 'left': 'bob'}
-
-color_permutations = list(itertools.permutations(colors, 3))
+#color_permutations = list(itertools.permutations(colors, 3))
 
 
 def print_permutations(color_permutations):
@@ -53,6 +50,8 @@ def print_permutations(color_permutations):
 
 
 class DualPushButtons(BimanualTask):
+
+
 
     def init_task(self) -> None:
         self.buttons_pushed = 0
@@ -69,24 +68,10 @@ class DualPushButtons(BimanualTask):
         # goal_conditions merely state joint conditions for push action for
         # each button regardless of whether the task involves pushing it
         self.goal_conditions = [JointCondition(self.target_joints[n], 0.001)
-                                for n in range(3)]
+                                for n in range(2)]
 
-        #..todo:: also include not press and which robot
-
-        self.register_waypoint_ability_start(0, self._move_above_next_target)
-        self.register_waypoints_should_repeat(self._repeat)
-
-        self.robot_names = ['right', 'left']
-        self.waypoint_mapping = {}
-
-    def set_robot(self, robot_name: str):
-        waypoints = ['waypoint0', 'waypoint1']
-        ext_strings = [f'{robot_name}_close_gripper(0.1);{robot_name}_ignore_collisions', f'{robot_name}_ignore_collisions']
-        for waypoint_name, ext_str in zip(waypoints, ext_strings):
-            self.waypoint_mapping[waypoint_name] = robot_name
-            w = Dummy(waypoint_name)
-            w.set_extension_string(ext_str)
-
+        self.waypoint_mapping = defaultdict(lambda: 'left')
+        self.waypoint_mapping.update({'waypoint0': 'right', 'waypoint2': 'right'})
 
     def init_episode(self, index: int) -> List[str]:
 
@@ -96,84 +81,48 @@ class DualPushButtons(BimanualTask):
             tp.set_color([1.0, 0.0, 0.0])
         for w in self.target_wraps:
             w.set_color([1.0, 0.0, 0.0])
-        # For each color permutation, we want to have 1, 2 or 3 buttons pushed
-        color_index = int(index / MAX_TARGET_BUTTONS)
-        self.buttons_to_push = 1 + index % MAX_TARGET_BUTTONS
-        button_colors = color_permutations[color_index]
+            
+        #button_colors = color_permutations[index]
+
+        rng = np.random.default_rng(index)
+        button_colors = rng.choice(np.asarray(colors, dtype=object), 3, replace=False)
         
         self.color_names = []
         self.color_rgbs = []
         self.chosen_colors = []
 
-        i = 0
-        for b in self.target_buttons:
+        for i, b in enumerate(self.target_buttons):
             color_name, color_rgb = button_colors[i]
             self.color_names.append(color_name)
             self.color_rgbs.append(color_rgb)
             self.chosen_colors.append((color_name, color_rgb))
             b.set_color(color_rgb)
-            i += 1
 
-        # for task success, all button to push must have green color RGB
-        self.success_conditions = []
-        for i in range(self.buttons_to_push):
-            self.success_conditions.append(self.goal_conditions[i])
+        self.register_success_conditions([ConditionSet(self.goal_conditions, True, True)])
 
-        self.register_success_conditions(
-            [ConditionSet(self.success_conditions, True, False)])
-
-        robot_name = self.robot_names[index % 2]
-        self.set_robot(robot_name)
-        robot_human_name = robot_human_names[robot_name]
-
-        rtn0 = f'{robot_human_name}, push the {self.color_names[0]} button'
-        rtn1 = f'{robot_human_name}, press the {self.color_names[0]} button'
-        rtn2 = f'{robot_human_name}, push down the button with the {self.color_names[0]} base'
-        for i in range(self.buttons_to_push):
-            if i == 0:
-                continue
-            else:
-                rtn0 += f', then push the {self.color_names[i]} button'
-                rtn1 += f', then press the {self.color_names[i]} button'
-                rtn2 += f', then the {self.color_names[i]} one'
+        rtn0 = f'push the {self.color_names[0]} and the  {self.color_names[1]} buttons'
+        rtn1 = f'press the {self.color_names[0]} and the {self.color_names[1]} buttons'
+        rtn2 = f'push down the buttons with the {self.color_names[0]} and the the {self.color_names[1]} base'
 
         b = SpawnBoundary([self.boundaries])
         for button in self.target_buttons:
             b.sample(button, min_distance=0.1)
 
-        num_non_targets = 3 - self.buttons_to_push
-        spare_colors = list(set(colors)
-                            - set(
-            [self.chosen_colors[i] for i in range(self.buttons_to_push)]))
+        w0 = Dummy('waypoint0')
+        x, y, z = self.target_buttons[0].get_position()
+        w0.set_position([x, y, z + 0.083])
+        w0.set_orientation([math.pi, 0, math.pi])
 
-        spare_color_rgbs = []
-        for i in range(len(spare_colors)):
-            _, rgb = spare_colors[i]
-            spare_color_rgbs.append(rgb)
+        w0 = Dummy('waypoint1')
+        x, y, z = self.target_buttons[1].get_position()
+        w0.set_position([x, y, z + 0.083])
+        w0.set_orientation([math.pi, 0, math.pi])
 
-        color_choice_indexes = np.random.choice(range(len(spare_colors)),
-                                                size=num_non_targets,
-                                                replace=False)
-        non_target_index = 0
-        for i, button in enumerate(self.target_buttons):
-            if i in range(self.buttons_to_push):
-                pass
-            else:
-                _, rgb = spare_colors[color_choice_indexes[non_target_index]]
-                button.set_color(rgb)
-                non_target_index += 1
 
         return [rtn0, rtn1, rtn2]
 
     def variation_count(self) -> int:
-        return np.minimum(
-            len(color_permutations) * MAX_TARGET_BUTTONS, MAX_VARIATIONS)
-
-    def step(self) -> None:
-        for i in range(len(self.target_buttons)):
-            if self.goal_conditions[i].condition_met() == (True, True):
-                self.target_topPlates[i].set_color([0.0, 1.0, 0.0])
-                self.target_wraps[i].set_color([0.0, 1.0, 0.0])
+        return MAX_VARIATIONS
 
     def cleanup(self) -> None:
         self.buttons_pushed = 0
@@ -183,11 +132,3 @@ class DualPushButtons(BimanualTask):
             print('buttons_pushed:', self.buttons_pushed, 'buttons_to_push:',
                   self.buttons_to_push)
             raise RuntimeError('Should not be here.')
-        w0 = Dummy('waypoint0')
-        x, y, z = self.target_buttons[self.buttons_pushed].get_position()
-        w0.set_position([x, y, z + 0.083])
-        w0.set_orientation([math.pi, 0, math.pi])
-
-    def _repeat(self):
-        self.buttons_pushed += 1
-        return self.buttons_pushed < self.buttons_to_push

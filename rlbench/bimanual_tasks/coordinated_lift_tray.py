@@ -43,7 +43,7 @@ class CoordinatedLiftTray(BimanualTask):
         self._variation_index = index
 
         right_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
-        left_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
+        left_sensor = ProximitySensor('Panda_leftArm_gripper_attachProxSensor')
 
 
         #tray_visual = Shape('tray_visual')

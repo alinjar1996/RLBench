@@ -5,6 +5,7 @@ import numpy as np
 from pyrep.objects.proximity_sensor import ProximitySensor
 from pyrep.objects.shape import Shape
 from rlbench.backend.conditions import DetectedCondition
+from rlbench.backend.conditions import NothingGrasped
 from rlbench.backend.task import BimanualTask
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from pyrep.objects.dummy import Dummy
@@ -28,14 +29,16 @@ class HandoverItemEasy(BimanualTask):
 
         self._variation_index = index
 
-        success_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
+        right_success_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
+        left_success_sensor = ProximitySensor('Panda_leftArm_gripper_attachProxSensor')
 
         #b = SpawnBoundary([self.boundaries])
         #b.clear()
         #    b.sample(item, min_distance=0.1)
 
         self.register_success_conditions(
-            [DetectedCondition(self.item, success_sensor)])
+            [DetectedCondition(self.item, right_success_sensor),  
+             DetectedCondition(self.item, left_success_sensor, negated=True)])
 
         return [f'bring me the item',
                 f'hand over the object']

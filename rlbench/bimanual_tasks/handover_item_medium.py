@@ -36,8 +36,6 @@ class HandoverItemMedium(BimanualTask):
 
         self._variation_index = index
 
-        success_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
-
         color_name, _color = colors[index]
 
         w0 = Dummy('waypoint2')
@@ -57,8 +55,12 @@ class HandoverItemMedium(BimanualTask):
         #for item in self.items:
         #    b.sample(item, min_distance=0.1)
 
+        right_success_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
+        left_success_sensor = ProximitySensor('Panda_leftArm_gripper_attachProxSensor')
+
         self.register_success_conditions(
-            [DetectedCondition(self.items[index], success_sensor)])
+            [DetectedCondition(self.items[index], right_success_sensor),  
+             DetectedCondition(self.items[index], left_success_sensor, negated=True)])
 
         return [f'bring me the {color_name} item',
                 f'hand over the {color_name} object']

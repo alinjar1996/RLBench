@@ -228,7 +228,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
     def action(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
         assert_action_shape(action, (7,))
         assert_unit_quaternion(action[3:])
-        path =  self.get_path(scene, action, ignore_collisions, scene.robot.arm, scene.robot.gripper)
+        path = self.get_path(scene, action, ignore_collisions, scene.robot.arm, scene.robot.gripper)
         done = False
         while not done:
             done = path.step()
@@ -307,6 +307,40 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
 
     def action_shape(self, scene: Scene) -> tuple:
         return 7,
+
+class UnimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
+
+    def __init__(self,
+                 absolute_mode: bool = True,
+                 frame: str = 'world',
+                 collision_checking: bool = False,
+                 robot_name: str = ''):
+        super().__init__(absolute_mode, frame, collision_checking)
+        self.robot_name = robot_name
+
+    def action(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
+        assert_action_shape(action, (7,))
+        assert_unit_quaternion(action[3:])
+        if self.robot_name == 'right':
+            path = self.get_path(scene, action, ignore_collisions, scene.robot.right_arm, scene.robot.right_gripper)
+        elif self.robot_name == 'left':
+            path = self.get_path(scene, action, ignore_collisions, scene.robot.left_arm, scene.robot.left_gripper)
+        else:
+            logging.error('Invalid robot name')
+
+        if not path:
+            logging.warning('No path found')
+            return
+        done = False
+        while not done:
+            done = path.step()
+            scene.step()
+            if self._callable_each_step is not None:
+                self._callable_each_step(scene.get_observation())
+            success, terminate = scene.task.success()
+            # If the task succeeds while traversing path, then break early
+            if success:
+                break
 
 
 class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):

@@ -55,6 +55,7 @@ class ObservationConfig(object):
                  record_gripper_closing=False,
                  task_low_dim_state=True,
                  record_ignore_collisions=True,
+                 robot_name=''
                  ):
         self.left_shoulder_camera = (
             CameraConfig() if left_shoulder_camera is None
@@ -86,6 +87,7 @@ class ObservationConfig(object):
         self.record_gripper_closing = record_gripper_closing
         self.task_low_dim_state = task_low_dim_state
         self.record_ignore_collisions = record_ignore_collisions
+        self.robot_name = robot_name
 
     def set_all(self, value: bool):
         self.set_all_high_dim(value)

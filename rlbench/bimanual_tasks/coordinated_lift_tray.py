@@ -45,16 +45,15 @@ class CoordinatedLiftTray(BimanualTask):
         right_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
         left_sensor = ProximitySensor('Panda_leftArm_gripper_attachProxSensor')
 
-
         #tray_visual = Shape('tray_visual')
         #print(self.item.get_position())
-        ##b.sample(self.item, min_distance=0.1, ignore_collisions=True)
+        #tray_visual.sample(self.item, min_distance=0.1, ignore_collisions=True)
         self.item.set_position([0.0, 0.0, 0.1], relative_to=self.tray, reset_dynamics=False)
         #print(self.item.get_position())
 
         self.register_success_conditions([
-            LiftedCondition(self.tray, 1.0),
-            #LiftedCondition(self.item, 1.0),
+            LiftedCondition(self.tray, 1.2),
+            LiftedCondition(self.item, 1.2),
             DetectedCondition(self.tray, right_sensor),
             DetectedCondition(self.tray, left_sensor)])
 
@@ -66,7 +65,7 @@ class CoordinatedLiftTray(BimanualTask):
         return 1 #len(self._options)
 
     def boundary_root(self) -> Object:
-        return Shape('item')
+        return Dummy('coordinated_lift_tray')
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

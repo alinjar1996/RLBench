@@ -9,7 +9,19 @@ from rlbench.backend.conditions import NothingGrasped
 from rlbench.backend.task import BimanualTask
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from pyrep.objects.dummy import Dummy
+from pyrep.objects.object import Object
+from rlbench.backend.conditions import Condition
 
+
+class LiftedCondition(Condition):
+
+    def __init__(self, item: Shape, min_height: float):
+        self.item = item
+        self.min_height = min_height
+
+    def condition_met(self):
+        pos = self.item.get_position()
+        return pos[2] >= self.min_height, False
 
 class HandoverItemEasy(BimanualTask):
 
@@ -38,13 +50,17 @@ class HandoverItemEasy(BimanualTask):
 
         self.register_success_conditions(
             [DetectedCondition(self.item, right_success_sensor),  
-             DetectedCondition(self.item, left_success_sensor, negated=True)])
+             DetectedCondition(self.item, left_success_sensor, negated=True),
+             LiftedCondition(self.item, 0.8)])
 
         return [f'bring me the item',
                 f'hand over the object']
 
     def variation_count(self) -> int:
         return 1
+
+    def boundary_root(self) -> Object:
+        return Shape('handover_item_boundary')
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

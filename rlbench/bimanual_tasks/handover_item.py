@@ -10,6 +10,9 @@ from rlbench.backend.spawn_boundary import SpawnBoundary
 from pyrep.objects.dummy import Dummy
 from rlbench.backend.exceptions import BoundaryError
 from absl import logging
+from pyrep.objects.object import Object
+from rlbench.backend.conditions import Condition
+
 
 colors = [
     ('red', (1.0, 0.0, 0.0)),
@@ -23,6 +26,16 @@ colors = [
     #('white', (1.0, 1.0, 1.0)),
 ]
 
+class LiftedCondition(Condition):
+
+    def __init__(self, item: Shape, min_height: float):
+        self.item = item
+        self.min_height = min_height
+
+    def condition_met(self):
+        pos = self.item.get_position()
+        return pos[2] >= self.min_height, False
+
 class HandoverItem(BimanualTask):
 
     def init_task(self) -> None:
@@ -35,6 +48,7 @@ class HandoverItem(BimanualTask):
         self.waypoint_mapping.update({'waypoint0': 'right', 'waypoint5': 'right'})
 
         self.boundaries = Shape('handover_item_boundary')
+        self.boundary_init_pose = Shape('handover_item_boundary').get_position()
 
 
     def init_episode(self, index:  int) -> List[str]:
@@ -51,6 +65,8 @@ class HandoverItem(BimanualTask):
         for i, item in enumerate(self.items[1:]):
             item.set_color(remaining_colors[i][1])
 
+        Shape('handover_item_boundary').set_position(self.boundary_init_pose)
+
         b = SpawnBoundary([self.boundaries])
         b.MAX_SAMPLES = 1000
         b.clear()
@@ -66,13 +82,17 @@ class HandoverItem(BimanualTask):
 
         self.register_success_conditions(
             [DetectedCondition(self.items[0], right_success_sensor),  
-             DetectedCondition(self.items[0], left_success_sensor, negated=True)])
+             DetectedCondition(self.items[0], left_success_sensor, negated=True),
+             LiftedCondition(self.items[0], 0.8)])
 
         return [f'bring me the {color_name} item',
                 f'hand over the {color_name} object']
 
     def variation_count(self) -> int:
         return len(colors)
+    
+    #def boundary_root(self) -> Object:
+    #    return Shape('handover_item_boundary')
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

@@ -79,6 +79,71 @@ class Discrete(GripperActionMode):
         return 1,
 
 
+class UnimanualDiscrete(GripperActionMode):
+    """Control if the gripper is open or closed in a discrete manner.
+
+    Action values > 0.5 will be discretised to 1 (open), and values < 0.5
+    will be  discretised to 0 (closed).
+    """
+
+    def __init__(self, attach_grasped_objects: bool = True,
+                 detach_before_open: bool = True,
+                 robot_name: str = 'left'):
+        self._attach_grasped_objects = attach_grasped_objects
+        self._detach_before_open = detach_before_open
+        self.robot_name = robot_name
+
+    def _actuate(self, scene, action):
+        done = False
+        while not done:
+            if self.robot_name == 'right':
+                done = scene.robot.right_gripper.actuate(action, velocity=0.2)
+            else:
+                done = scene.robot.left_gripper.actuate(action, velocity=0.2)
+            scene.pyrep.step()
+            scene.task.step()
+
+    def action(self, scene: Scene, action: np.ndarray):
+        assert_action_shape(action, self.action_shape(scene.robot))
+        if 0.0 > action[0] > 1.0:
+            raise InvalidActionError(
+                'Gripper action expected to be within 0 and 1.')
+        if self.robot_name == 'right':
+            open_condition = all(x > 0.9 for x in scene.robot.right_gripper.get_open_amount())
+        else:
+            open_condition = all(x > 0.9 for x in scene.robot.left_gripper.get_open_amount())
+        current_ee = 1.0 if open_condition else 0.0
+        action = float(action[0] > 0.5)
+
+        if current_ee != action:
+            done = False
+            if not self._detach_before_open:
+                self._actuate(scene, action)
+            if action == 0.0 and self._attach_grasped_objects:
+                # If gripper close action, the check for grasp.
+                for g_obj in scene.task.get_graspable_objects():
+                    if self.robot_name == 'right':
+                        scene.robot.right_gripper.grasp(g_obj)
+                    else:
+                        scene.robot.left_gripper.grasp(g_obj)
+            else:
+                # If gripper open action, the check for un-grasp.
+                if self.robot_name == 'right':
+                    scene.robot.right_gripper.release()
+                else:
+                    scene.robot.left_gripper.release()
+            if self._detach_before_open:
+                self._actuate(scene, action)
+            if action == 1.0:
+                # Step a few more times to allow objects to drop
+                for _ in range(10):
+                    scene.pyrep.step()
+                    scene.task.step()
+
+    def action_shape(self, scene: Scene) -> tuple:
+        return 1,
+
+
 
 class BimanualDiscrete(Discrete):
     
@@ -89,6 +154,7 @@ class BimanualDiscrete(Discrete):
         done = False
         right_done = False
         left_done = False
+
         while not done:
             if not right_done:
                 right_done = scene.robot.right_gripper.actuate(right_action, velocity=0.2)

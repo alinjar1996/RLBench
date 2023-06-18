@@ -55,6 +55,7 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
             task_name, task_root))
 
     if variation_number == -1:
+        # All variations
         examples_path = join(
             task_root, VARIATIONS_ALL_FOLDER,
             EPISODES_FOLDER)
@@ -65,6 +66,9 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
             task_root, VARIATIONS_FOLDER % variation_number,
             EPISODES_FOLDER)
         examples = listdir(examples_path)
+
+    # hack: ignore .DS_Store files from macOS zips
+    examples = [e for e in examples if '.DS_Store' not in e]
 
     if amount == -1:
         amount = len(examples)
@@ -91,6 +95,14 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
         else:
             obs.variation_number = variation_number
 
+        # language description
+        episode_descriptions_f = join(example_path, VARIATION_DESCRIPTIONS)
+        if exists(episode_descriptions_f):
+            with open(episode_descriptions_f, 'rb') as f:
+                descriptions = pickle.load(f)
+        else:
+            descriptions = ["unknown task description"]
+
         l_sh_rgb_f = join(example_path, LEFT_SHOULDER_RGB_FOLDER)
         l_sh_depth_f = join(example_path, LEFT_SHOULDER_DEPTH_FOLDER)
         l_sh_mask_f = join(example_path, LEFT_SHOULDER_MASK_FOLDER)
@@ -109,24 +121,18 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
 
         num_steps = len(obs)
 
-        real_cameras = obs_config.front_camera.real_camera or \
-            obs_config.left_shoulder_camera.real_camera or \
-            obs_config.right_shoulder_camera.real_camera or \
-            obs_config.overhead_camera.real_camera or \
-            obs_config.wrist_camera.real_camera
-
-        if not real_cameras:
-            folders = [l_sh_rgb_f, l_sh_depth_f, r_sh_rgb_f, r_sh_depth_f, oh_rgb_f, oh_depth_f, wrist_rgb_f, wrist_depth_f, front_rgb_f]
-            num_image_files = map(lambda d: len(listdir(d)), folders)
-            print(list(num_image_files))
-            num_image_files = np.asarray(list(num_image_files), dtype=np.int32)
-
-            if not np.all(num_image_files == num_steps):
-                logging.error("Not all images have been recorded folders=%s and num_image_files=%s", folders, num_image_files)
-                #..fixme::
-                #raise RuntimeError('Broken dataset assumption')
+        if not (num_steps == len(listdir(l_sh_rgb_f)) == len(
+                listdir(l_sh_depth_f)) == len(listdir(r_sh_rgb_f)) == len(
+                listdir(r_sh_depth_f)) == len(listdir(oh_rgb_f)) == len(
+                listdir(oh_depth_f)) == len(listdir(wrist_rgb_f)) == len(
+                listdir(wrist_depth_f)) == len(listdir(front_rgb_f)) == len(
+                listdir(front_depth_f))):
+            raise RuntimeError('Broken dataset assumption')
 
         for i in range(num_steps):
+            # descriptions
+            obs[i].misc['descriptions'] = descriptions
+
             si = IMAGE_FORMAT % i
             if obs_config.left_shoulder_camera.rgb:
                 obs[i].left_shoulder_rgb = join(l_sh_rgb_f, si)
@@ -177,8 +183,6 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
             if not obs_config.task_low_dim_state:
                 obs[i].task_low_dim_state = None
 
-        depth_scale = 1000.0 if real_cameras else DEPTH_SCALE
-
         if not image_paths:
             for i in range(num_steps):
                 if obs_config.left_shoulder_camera.rgb:
@@ -212,14 +216,10 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                         _resize_if_needed(
                             Image.open(obs[i].left_shoulder_depth),
                             obs_config.left_shoulder_camera.image_size),
-                        depth_scale)
-                    if not real_cameras:
-                        near = obs[i].misc['left_shoulder_camera_near']
-                        far = obs[i].misc['left_shoulder_camera_far']
-                        l_sh_depth_m = near + l_sh_depth * (far - near)
-                    else:
-                        l_sh_depth_m = l_sh_depth
-
+                        DEPTH_SCALE)
+                    near = obs[i].misc['left_shoulder_camera_near']
+                    far = obs[i].misc['left_shoulder_camera_far']
+                    l_sh_depth_m = near + l_sh_depth * (far - near)
                     if obs_config.left_shoulder_camera.depth:
                         d = l_sh_depth_m if obs_config.left_shoulder_camera.depth_in_meters else l_sh_depth
                         obs[i].left_shoulder_depth = obs_config.left_shoulder_camera.depth_noise.apply(d)
@@ -231,14 +231,10 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                         _resize_if_needed(
                             Image.open(obs[i].right_shoulder_depth),
                             obs_config.right_shoulder_camera.image_size),
-                        depth_scale)
-                    if not real_cameras:
-                        near = obs[i].misc['right_shoulder_camera_near']
-                        far = obs[i].misc['right_shoulder_camera_far']
-                        r_sh_depth_m = near + r_sh_depth * (far - near)
-                    else:
-                        r_sh_depth_m = r_sh_depth
-
+                        DEPTH_SCALE)
+                    near = obs[i].misc['right_shoulder_camera_near']
+                    far = obs[i].misc['right_shoulder_camera_far']
+                    r_sh_depth_m = near + r_sh_depth * (far - near)
                     if obs_config.right_shoulder_camera.depth:
                         d = r_sh_depth_m if obs_config.right_shoulder_camera.depth_in_meters else r_sh_depth
                         obs[i].right_shoulder_depth = obs_config.right_shoulder_camera.depth_noise.apply(d)
@@ -250,13 +246,10 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                         _resize_if_needed(
                             Image.open(obs[i].overhead_depth),
                             obs_config.overhead_camera.image_size),
-                        depth_scale)
-                    if not real_cameras:
-                        near = obs[i].misc['overhead_camera_near']
-                        far = obs[i].misc['overhead_camera_far']
-                        oh_depth_m = near + oh_depth * (far - near)
-                    else:
-                        oh_depth_m = oh_depth
+                        DEPTH_SCALE)
+                    near = obs[i].misc['overhead_camera_near']
+                    far = obs[i].misc['overhead_camera_far']
+                    oh_depth_m = near + oh_depth * (far - near)
                     if obs_config.overhead_camera.depth:
                         d = oh_depth_m if obs_config.overhead_camera.depth_in_meters else oh_depth
                         obs[i].overhead_depth = obs_config.overhead_camera.depth_noise.apply(d)
@@ -268,13 +261,10 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                         _resize_if_needed(
                             Image.open(obs[i].wrist_depth),
                             obs_config.wrist_camera.image_size),
-                        depth_scale)
-                    if not real_cameras:
-                        near = obs[i].misc['wrist_camera_near']
-                        far = obs[i].misc['wrist_camera_far']
-                        wrist_depth_m = near + wrist_depth * (far - near)
-                    else:
-                        wrist_depth_m = wrist_depth
+                        DEPTH_SCALE)
+                    near = obs[i].misc['wrist_camera_near']
+                    far = obs[i].misc['wrist_camera_far']
+                    wrist_depth_m = near + wrist_depth * (far - near)
                     if obs_config.wrist_camera.depth:
                         d = wrist_depth_m if obs_config.wrist_camera.depth_in_meters else wrist_depth
                         obs[i].wrist_depth = obs_config.wrist_camera.depth_noise.apply(d)
@@ -286,13 +276,10 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                         _resize_if_needed(
                             Image.open(obs[i].front_depth),
                             obs_config.front_camera.image_size),
-                        depth_scale)
-                    if not real_cameras:
-                        near = obs[i].misc['front_camera_near']
-                        far = obs[i].misc['front_camera_far']
-                        front_depth_m = near + front_depth * (far - near)
-                    else:
-                        front_depth_m = front_depth
+                        DEPTH_SCALE)
+                    near = obs[i].misc['front_camera_near']
+                    far = obs[i].misc['front_camera_far']
+                    front_depth_m = near + front_depth * (far - near)
                     if obs_config.front_camera.depth:
                         d = front_depth_m if obs_config.front_camera.depth_in_meters else front_depth
                         obs[i].front_depth = obs_config.front_camera.depth_noise.apply(d)
@@ -352,8 +339,6 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                         _resize_if_needed(Image.open(
                             obs[i].front_mask),
                             obs_config.front_camera.image_size)))
-
-
 
         demos.append(obs)
     return demos

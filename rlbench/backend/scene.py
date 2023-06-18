@@ -433,6 +433,7 @@ class Scene(object):
             obs = UnimodalObservation(**observation_data)
 
         obs = self.task.decorate_observation(obs)
+
         return obs
 
     def step(self):

@@ -248,7 +248,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
         self._quick_boundary_check(scene, action)
 
         colliding_shapes = []
-        if not ignore_collisions: # self._collision_checking:
+        if not ignore_collisions:
             if self._robot_shapes is None:
                 self._robot_shapes = arm.get_objects_in_tree(
                     object_type=ObjectType.SHAPE)
@@ -268,6 +268,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
                 [s.set_collidable(False) for s in colliding_shapes]
 
         try:
+            # try once with collision checking (if ignore_collisions is true)
             try:
                 path = arm.get_path(
                     action[:3],
@@ -308,6 +309,15 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
     def action_shape(self, scene: Scene) -> tuple:
         return 7,
 
+    def record_end(self, scene, steps=60, step_scene=True):
+        if self._callable_each_step is not None:
+            for _ in range(steps):
+                if step_scene:
+                    scene.step()
+                self._callable_each_step(scene.get_observation())
+
+
+
 class UnimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
 
     def __init__(self,
@@ -336,10 +346,11 @@ class UnimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
             done = path.step()
             scene.step()
             if self._callable_each_step is not None:
+                # Record observations
                 self._callable_each_step(scene.get_observation())
             success, terminate = scene.task.success()
             # If the task succeeds while traversing path, then break early
-            if success:
+            if success and self._callable_each_step is None:
                 break
 
 
@@ -410,6 +421,7 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
 
     def unimanual_action_shape(self, scene: Scene) -> tuple:
         return 7,
+
 
 class EndEffectorPoseViaIK(ArmActionMode):
     """High-level action where target pose is given and reached via IK.

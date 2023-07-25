@@ -172,9 +172,15 @@ class LoadedTask(object):
 
     def record_demo(self):
         cam_placeholder = Dummy('cam_cinematic_placeholder')
-        cam = VisionSensor.create([1280, 720])
+        cam = VisionSensor.create([1920, 1200], background_color=[1.0, 1.0, 1.0])
         cam.set_pose(cam_placeholder.get_pose())
         cam.set_parent(cam_placeholder)
+
+
+        scene_background = ["Wall1", "Wall2", "Wall3", "Wall4", "Floor", "Roof", "ResizableFloor_5_25_visibleElement"]
+
+        for object_name in scene_background: 
+            Shape(object_name).set_renderable(False)
 
         cam_motion = CircleCameraMotion(cam, Dummy('cam_cinematic_base'), 0.005)
         tr = TaskRecorder(None, cam_motion, fps=30)
@@ -186,11 +192,14 @@ class LoadedTask(object):
         success, terminate = self.task.success()
 
 
-        recording_output_path = f"/tmp/rlbench_video_{self.task_file}.mp4" 
+        recording_output_path = f"/tmp/rlbench_video_{self.task_file[:-3]}.mp4" 
 
         tr.save(recording_output_path, f"Demo for task {self.task_file} success={success}", 1    )
 
         print(f"Saving video to {recording_output_path}")
+
+        for object_name in scene_background: 
+            Shape(object_name).set_renderable(True)
 
         if success:
             print("Demo was a success!")

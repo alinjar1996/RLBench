@@ -100,13 +100,20 @@ class DualPushButtons(BimanualTask):
 
         self.register_success_conditions([ConditionSet(self.goal_conditions, True, True)])
 
-        rtn0 = f'push the {self.color_names[0]} and the  {self.color_names[1]} buttons'
-        rtn1 = f'press the {self.color_names[0]} and the {self.color_names[1]} buttons'
-        rtn2 = f'push down the buttons with the {self.color_names[0]} and the the {self.color_names[1]} base'
+        # ..todo separate the spawn boundaries for the left and right  robot
+
+
+        right_boundary = Shape('push_buttons_boundary_right')
+        b = SpawnBoundary([right_boundary])
+        b.sample(self.target_buttons[0], min_distance=0.1)
+
+        left_boundary = Shape('push_buttons_boundary_left')
+        b = SpawnBoundary([left_boundary])
+        b.sample(self.target_buttons[1], min_distance=0.1)
 
         b = SpawnBoundary([self.boundaries])
-        for button in self.target_buttons:
-            b.sample(button, min_distance=0.1)
+        b.sample(self.target_buttons[2], min_distance=0.1)
+
 
         w0 = Dummy('waypoint0')
         x, y, z = self.target_buttons[0].get_position()
@@ -118,6 +125,10 @@ class DualPushButtons(BimanualTask):
         w0.set_position([x, y, z + 0.083])
         w0.set_orientation([math.pi, 0, math.pi])
 
+        rtn0 = f'push the {self.color_names[0]} and the {self.color_names[1]} buttons'
+        rtn1 = f'press the {self.color_names[0]} and the {self.color_names[1]} buttons'
+        rtn2 = f'push down the buttons with the {self.color_names[0]} and the the {self.color_names[1]} base'
+
 
         return [rtn0, rtn1, rtn2]
 
@@ -126,6 +137,12 @@ class DualPushButtons(BimanualTask):
 
     def cleanup(self) -> None:
         self.buttons_pushed = 0
+
+    def base_rotation_bounds(self):
+        return [0.0] * 3, [0.0] * 3
+
+    def is_static_workspace(self):
+        return True
 
     def _move_above_next_target(self, waypoint):
         if self.buttons_pushed >= self.buttons_to_push:

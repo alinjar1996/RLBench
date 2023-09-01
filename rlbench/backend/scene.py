@@ -796,8 +796,8 @@ class Scene(object):
                     '%s_near' % name: cam.get_near_clipping_plane(),
                     '%s_far' % name: cam.get_far_clipping_plane(),
                 }
-            else:
-                logging.warning("Camera no longer exists %s", name)
+            #else:
+            #    logging.warning("Camera no longer exists %s", name)
             return d
         misc = _get_cam_data(self._cam_over_shoulder_left, 'left_shoulder_camera')
         misc.update(_get_cam_data(self._cam_over_shoulder_right, 'right_shoulder_camera'))

@@ -82,6 +82,9 @@ class HandoverItemMedium(BimanualTask):
     
     def boundary_root(self) -> Object:
         return Shape('handover_item_boundary')
+    
+    #def is_static_workspace(self):
+    #    return True
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

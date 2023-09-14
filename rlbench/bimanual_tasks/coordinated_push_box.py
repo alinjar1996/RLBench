@@ -30,7 +30,7 @@ class CoordinatedPushBox(BimanualTask):
 
         success_sensor = ProximitySensor('success0')
         self.register_success_conditions([DetectedCondition(self.item, success_sensor)])
-        return ['push the box to the read area']
+        return ['push the box to the red area']
 
     def variation_count(self) -> int:
         return 1

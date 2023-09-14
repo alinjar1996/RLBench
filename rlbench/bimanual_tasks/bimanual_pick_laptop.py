@@ -29,9 +29,7 @@ class BimanualPickLaptop(BimanualTask):
             self.waypoint_mapping.update({f'waypoint{i}': 'right'})
 
     def init_episode(self, index: int) -> List[str]:
-        return ['close laptop lid',
-                'close the laptop',
-                'shut the laptop lid']
+        return ['pick up the laptop']
 
     def variation_count(self) -> int:
         return 1

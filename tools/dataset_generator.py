@@ -167,6 +167,7 @@ def save_demo(demo, example_path, variation):
     with open(os.path.join(example_path, LOW_DIM_PICKLE), 'wb') as f:
         pickle.dump(demo, f)
 
+
     with open(os.path.join(example_path, VARIATION_NUMBER), 'wb') as f:
         pickle.dump(variation, f)
 

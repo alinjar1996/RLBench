@@ -99,6 +99,10 @@ class StackBlocks(Task):
         last = self.blocks_stacked == self.blocks_to_stack - 1
         waypoint.skip = last
 
+    def _is_last(self, waypoint):
+        last = self.blocks_stacked == self.blocks_to_stack - 1
+        waypoint.skip = last
+
     def _repeat(self):
         self.blocks_stacked += 1
         return self.blocks_stacked < self.blocks_to_stack

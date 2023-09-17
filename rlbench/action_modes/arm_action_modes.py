@@ -2,7 +2,9 @@ from abc import abstractmethod
 
 import numpy as np
 from pyquaternion import Quaternion
+
 from pyrep.const import ConfigurationPathAlgorithms as Algos
+from pyrep.const import ConfigurationPathAlgorithms as ObjectType
 from pyrep.errors import ConfigurationPathError, IKError
 from pyrep.const import ObjectType
 from pyrep.objects.dummy import Dummy
@@ -19,6 +21,7 @@ from rlbench.backend.scene import Scene
 from rlbench.const import SUPPORTED_ROBOTS
 
 import logging
+
 
 
 def assert_action_shape(action: np.ndarray, expected_shape: tuple):
@@ -49,6 +52,15 @@ class ArmActionMode(object):
     def action(self, scene: Scene, action: np.ndarray):
         pass
 
+    def action_step(self, scene: Scene, action: np.ndarray):
+        pass
+
+    def action_pre_step(self, scene: Scene, action: np.ndarray):
+        pass
+
+    def action_post_step(self, scene: Scene, action: np.ndarray):
+        pass
+
     @abstractmethod
     def action_shape(self, scene: Scene):
         pass
@@ -68,11 +80,20 @@ class JointVelocity(ArmActionMode):
 
     Similar to the action space in many continious control OpenAI Gym envs.
     """
-    
+
     def action(self, scene: Scene, action: np.ndarray):
+        self.action_pre_step(scene, action)
+        self.action_step(scene, action)
+        self.action_post_step(scene, action)
+    
+    def action_pre_step(self, scene: Scene, action: np.ndarray):
         assert_action_shape(action, self.action_shape(scene))
         scene.robot.arm.set_joint_target_velocities(action)
+
+    def action_step(self, scene: Scene, action: np.ndarray):
         scene.step()
+
+    def action_post_step(self, scene: Scene, action: np.ndarray):
         scene.robot.arm.set_joint_target_velocities(np.zeros_like(action))
 
     def action_shape(self, scene: Scene) -> tuple:
@@ -82,15 +103,29 @@ class JointVelocity(ArmActionMode):
         robot.arm.set_control_loop_enabled(False)
         robot.arm.set_motor_locked_at_zero_velocity(True)
 
+
 class BimanualJointVelocity(ArmActionMode): 
 
+
     def action(self, scene: Scene, action: np.ndarray):
+        self.action_pre_step(scene, action)
+        self.action_step(scene, action)
+        self.action_post_step(scene, action)
+    
+    def action_pre_step(self, scene: Scene, action: np.ndarray):
         assert_action_shape(action, self.action_shape(scene))
         right_action = action[:7]
         left_action = action[7:]
         scene.robot.right_arm.set_joint_target_velocities(right_action)
         scene.robot.left_arm.set_joint_target_velocities(left_action)
+
+    def action_step(self, scene: Scene, action: np.ndarray):
         scene.step()
+
+    def action_post_step(self, scene: Scene, action: np.ndarray):
+        scene.robot.arm.set_joint_target_velocities(np.zeros_like(action))
+        right_action = action[:7]
+        left_action = action[7:]
         scene.robot.right_arm.set_joint_target_velocities(np.zeros_like(right_action))
         scene.robot.left_arm.set_joint_target_velocities(np.zeros_like(left_action))
 
@@ -102,6 +137,7 @@ class BimanualJointVelocity(ArmActionMode):
         robot.right_arm.set_motor_locked_at_zero_velocity(True)
         robot.left_arm.set_control_loop_enabled(False)
         robot.left_arm.set_motor_locked_at_zero_velocity(True)
+
 
 class JointPosition(ArmActionMode):
     """Control the target joint positions (absolute or delta) of the arm.
@@ -122,11 +158,20 @@ class JointPosition(ArmActionMode):
         self._absolute_mode = absolute_mode
 
     def action(self, scene: Scene, action: np.ndarray):
+        self.action_pre_step(scene, action)
+        self.action_step(scene, action)
+        self.action_post_step(scene, action)
+
+    def action_pre_step(self, scene: Scene, action: np.ndarray):
         assert_action_shape(action, self.action_shape(scene))
         a = action if self._absolute_mode else np.array(
             scene.robot.arm.get_joint_positions()) + action
         scene.robot.arm.set_joint_target_positions(a)
+
+    def action_step(self, scene: Scene, action: np.ndarray):
         scene.step()
+
+    def action_post_step(self, scene: Scene, action: np.ndarray):
         scene.robot.arm.set_joint_target_positions(
             scene.robot.arm.get_joint_positions())
 
@@ -148,9 +193,18 @@ class JointTorque(ArmActionMode):
         robot.arm.set_joint_forces(np.abs(action))
 
     def action(self, scene: Scene, action: np.ndarray):
+        self.action_pre_step(scene, action)
+        self.action_step(scene, action)
+        self.action_post_step(scene, action)
+
+    def action_pre_step(self, scene: Scene, action: np.ndarray):
         assert_action_shape(action, self.action_shape(scene))
         self._torque_action(scene.robot, action)
+
+    def action_step(self, scene: Scene, action: np.ndarray):
         scene.step()
+
+    def action_post_step(self, scene: Scene, action: np.ndarray):
         self._torque_action(scene.robot, scene.robot.arm.get_joint_forces())
         scene.robot.arm.set_joint_target_velocities(np.zeros_like(action))
 
@@ -161,8 +215,6 @@ class JointTorque(ArmActionMode):
         robot.arm.set_control_loop_enabled(False)
 
 
-
-        
 class EndEffectorPoseViaPlanning(ArmActionMode):
     """High-level action where target pose is given and reached via planning.
 
@@ -221,9 +273,10 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
         qw, qx, qy, qz = list(new_rot)
         pose = [a_x + x, a_y + y, a_z + z] + [qx, qy, qz, qw]
         return pose
-
+    
     def set_callable_each_step(self, callable_each_step):
         self._callable_each_step = callable_each_step
+
 
     def action(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
         assert_action_shape(action, (7,))
@@ -353,7 +406,6 @@ class UnimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
             if success and self._callable_each_step is None:
                 break
 
-
 class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
 
 
@@ -372,14 +424,6 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
 
         right_done = True
         left_done = True
-
-        #logging.warning("FIXME DEBUGGING")
-        #o = Shape("item")
-        #o.set_position(right_action[:3])
-        #o.set_position(right_action[3:])
-#
-        #logging.warning("FIXME END")
-   
         try:
             right_path = self.get_path(scene, right_action, right_ignore_collision, scene.robot.right_arm, scene.robot.right_gripper)
             if right_path:
@@ -411,6 +455,7 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
             scene.step()
             if self._callable_each_step is not None:
                 self._callable_each_step(scene.get_observation())
+
             success, terminate = scene.task.success()
             # If the task succeeds while traversing path, then break early
             if success:

@@ -16,8 +16,8 @@ from rlbench.demo import Demo
 from rlbench.observation_config import ObservationConfig
 
 _DT = 0.05
-_MAX_RESET_ATTEMPTS = 100
-_MAX_DEMO_ATTEMPTS = 25
+_MAX_RESET_ATTEMPTS = 40
+_MAX_DEMO_ATTEMPTS = 10
 
 
 class TaskEnvironment(object):
@@ -31,7 +31,9 @@ class TaskEnvironment(object):
                  dataset_root: str,
                  obs_config: ObservationConfig,
                  static_positions: bool = False,
-                 attach_grasped_objects: bool = True):
+                 attach_grasped_objects: bool = True,
+                 shaped_rewards: bool = False
+                 ):
         self._pyrep = pyrep
         self._robot = robot
         self._scene = scene
@@ -42,13 +44,15 @@ class TaskEnvironment(object):
         self._obs_config = obs_config
         self._static_positions = static_positions
         self._attach_grasped_objects = attach_grasped_objects
+        self._shaped_rewards = shaped_rewards
         self._reset_called = False
         self._prev_ee_velocity = None
         self._enable_path_observations = False
 
-
         self._scene.load(self._task)
         self._pyrep.start()
+        self._robot_shapes = self._robot.arm.get_objects_in_tree(
+            object_type=ObjectType.SHAPE)
 
         if self._robot.is_bimanual:
              #..fixme
@@ -106,8 +110,13 @@ class TaskEnvironment(object):
                 "Call 'reset' before calling 'step' on a task.")
         self._action_mode.action(self._scene, action)
         success, terminate = self._task.success()
-        task_reward = self._task.reward()
-        reward = float(success) if task_reward is None else task_reward
+        reward = float(success)
+        if self._shaped_rewards:
+            reward = self._task.reward()
+            if reward is None:
+                raise RuntimeError(
+                    'User requested shaped rewards, but task %s does not have '
+                    'a defined reward() function.' % self._task.get_name())
         return self._scene.get_observation(), reward, terminate
 
     def get_demos(self, amount: int, live_demos: bool = False,

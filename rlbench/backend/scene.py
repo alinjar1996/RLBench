@@ -1,6 +1,5 @@
 from typing import List, Callable
 
-
 import numpy as np
 from pyrep import PyRep
 from pyrep.const import ObjectType
@@ -50,7 +49,6 @@ class Scene(object):
         self.task = None
         self._obs_config = obs_config
         self._initial_task_state = None
-
 
         if self.robot.is_bimanual:
             self._start_arm_joint_pos = [robot.right_arm.get_joint_positions(), robot.left_arm.get_joint_positions()]
@@ -481,7 +479,6 @@ class Scene(object):
                     raise DemoError(
                         'Could not get a path for waypoint %d.' % i,
                         self.task) from e
-
                 ext = point.get_ext()
 
                 logging.info("point.get_ext() %s", str(ext))

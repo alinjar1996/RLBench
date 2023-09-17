@@ -47,7 +47,8 @@ class Environment(object):
                  frequency: int = 1,
                  visual_randomization_config: VisualRandomizationConfig = None,
                  dynamics_randomization_config: DynamicsRandomizationConfig = None,
-                 attach_grasped_objects: bool = True
+                 attach_grasped_objects: bool = True,
+                 shaped_rewards: bool = False
                  ):
 
         self._dataset_root = dataset_root
@@ -62,6 +63,7 @@ class Environment(object):
         self._visual_randomization_config = visual_randomization_config
         self._dynamics_randomization_config = dynamics_randomization_config
         self._attach_grasped_objects = attach_grasped_objects
+        self._shaped_rewards = shaped_rewards
 
         if robot_setup not in SUPPORTED_ROBOTS.keys():
             raise ValueError('robot_configuration must be one of %s' %
@@ -105,14 +107,6 @@ class Environment(object):
             self._pyrep.launch(join(DIR_PATH, BIMANUAL_TTT_FILE), headless=self._headless)
         else:
             self._pyrep.launch(join(DIR_PATH, TTT_FILE), headless=self._headless)
-
-        # ..TODO not sure if this helps
-        self._pyrep.step_ui()
-
-        #import time
-        #for i in range(20):
-        #    self._pyrep.step_ui()
-        #    time.sleep(1)
 
         arm_class, gripper_class, _ = SUPPORTED_ROBOTS[
             self._robot_setup]
@@ -182,7 +176,8 @@ class Environment(object):
         return TaskEnvironment(
             self._pyrep, self._robot, self._scene, task,
             self._action_mode, self._dataset_root, self._obs_config,
-            self._static_positions, self._attach_grasped_objects)
+            self._static_positions, self._attach_grasped_objects,
+            self._shaped_rewards)
 
     @property
     def action_shape(self):

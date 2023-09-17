@@ -1,8 +1,11 @@
 from abc import abstractmethod
 import numpy as np
 from typing import List
+from typing import Dict
+from typing import Any
 
 from dataclasses import dataclass
+from dataclasses import field
 from enum import Enum
 
 
@@ -18,35 +21,17 @@ class CameraImage:
     dtype: ImageType
     data: np.ndarray
 
-
-
 @dataclass
 class Observation:
     """Storage for both visual and low-dimensional observations."""
 
-    left_shoulder_rgb: np.ndarray
-    left_shoulder_depth: np.ndarray
-    left_shoulder_mask: np.ndarray
-    left_shoulder_point_cloud: np.ndarray
-    right_shoulder_rgb: np.ndarray
-    right_shoulder_depth: np.ndarray
-    right_shoulder_mask: np.ndarray
-    right_shoulder_point_cloud: np.ndarray
-    overhead_rgb: np.ndarray
-    overhead_depth: np.ndarray
-    overhead_mask: np.ndarray
-    overhead_point_cloud: np.ndarray
-    wrist_rgb: np.ndarray
-    wrist_depth: np.ndarray
-    wrist_mask: np.ndarray
-    wrist_point_cloud: np.ndarray
-    front_rgb: np.ndarray
-    front_depth: np.ndarray
-    front_mask: np.ndarray
-    front_point_cloud: np.ndarray
+    #..todo:: replace
+
+    perception_data: Dict[str, np.ndarray]
   
     task_low_dim_state: np.ndarray
-    misc: dict
+    
+    misc: Dict[str, Any]
 
     @property
     @abstractmethod
@@ -77,7 +62,6 @@ class UnimodalObservation(UnimodalObservationData, Observation):
     @Observation.is_bimanual.getter
     def is_bimanual(self):
         return False
-
 
     def get_low_dim_data(self) -> np.ndarray:
         """Gets a 1D array of all the low-dimensional obseervations.

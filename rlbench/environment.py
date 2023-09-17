@@ -231,15 +231,9 @@ class Environment(object):
         headless = self._headless
         self._headless = True
         self.launch()
-        d = dict(
-            left_shoulder_camera=_get_cam_info(
-                self._scene._cam_over_shoulder_left),
-            right_shoulder_camera=_get_cam_info(
-                self._scene._cam_over_shoulder_right),
-            front_camera=_get_cam_info(self._scene._cam_front),
-            wrist_camera=_get_cam_info(self._scene._cam_wrist),
-            overhead_camera=_get_cam_info(self._scene._cam_overhead)
-        )
+
+        d = {camera_name: _get_cam_info(sensor) for camera_name, sensor in self._scene.camera_sensors}
+
         self.shutdown()
         self._headless = headless
         return d

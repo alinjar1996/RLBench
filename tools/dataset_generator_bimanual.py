@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
+
+import os
+
 from multiprocessing import Process, Manager
 
 from pyrep.const import RenderMode
 
 from rlbench import ObservationConfig
-
-from rlbench.action_modes.action_mode import MoveArmThenGripper
-from rlbench.action_modes.arm_action_modes import JointVelocity
-from rlbench.action_modes.gripper_action_modes import Discrete
+from rlbench.observation_config import CameraConfig
 
 from rlbench.action_modes.action_mode import BimanualMoveArmThenGripper
 from rlbench.action_modes.arm_action_modes import BimanualJointVelocity
@@ -16,10 +16,9 @@ from rlbench.action_modes.gripper_action_modes import BimanualDiscrete
 from rlbench.backend.exceptions import BoundaryError, InvalidActionError, TaskEnvironmentError, WaypointError
 from rlbench.backend.utils import task_file_to_task_class
 from rlbench.environment import Environment
-from rlbench.backend.task import BimanualTask
 import rlbench.backend.task as task
 
-import os
+
 import pickle
 from PIL import Image
 from rlbench.backend import utils
@@ -35,7 +34,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('save_path',
                     '/tmp/rlbench_data/',
                     'Where to save the demos.')
-flags.DEFINE_list('tasks', ["coordinated_put_item_in_drawer"],
+flags.DEFINE_list('tasks', ["dual_push_buttons"], #, "coordinated_put_item_in_drawer_right", "coordinated_put_item_in_drawer"
                   'The tasks to collect. If empty, all tasks are collected.')
 flags.DEFINE_list('image_size', [128, 128],
                   'The size of the images tp save.')
@@ -54,99 +53,41 @@ flags.DEFINE_bool('all_variations', True,
 flags.DEFINE_bool('headless', True,
                   'Hide the simulator window')
 
-
-def check_and_make(dir):
-    if not os.path.exists(dir):
-        os.makedirs(dir)
-
+camera_names = ["over_shoulder_left", "over_shoulder_right", "overhead", "wrist_right", "wrist_left", "front"]
 
 def save_demo(demo, example_path, variation):
-    """
-    ..fixme:: point clouds are not stored?
-    """
-
-    data_names = [
-    'left_shoulder_rgb',
-    'left_shoulder_depth',
-    'left_shoulder_point_cloud',
-    'left_shoulder_mask',
-
-    'right_shoulder_rgb',
-    'right_shoulder_depth',
-    'right_shoulder_point_cloud',
-    'right_shoulder_mask',
-
-    'overhead_rgb',
-    'overhead_depth',
-    'overhead_point_cloud',
-    'overhead_mask',
-
-    'wrist_rgb',
-    'wrist_depth',
-    'wrist_point_cloud',
-    'wrist_mask',
-
-    'front_rgb',
-    'front_depth',
-    'front_point_cloud',
-    'front_mask'
-    ]
-
-    data_types = ['rgb', 'depth', 'point_cloud', 'mask'] * 5
-
-
-    data_paths =[LEFT_SHOULDER_RGB_FOLDER, 
-                LEFT_SHOULDER_DEPTH_FOLDER,
-                LEFT_SHOULDER_MASK_FOLDER,
-                '',
-                RIGHT_SHOULDER_RGB_FOLDER,
-                RIGHT_SHOULDER_DEPTH_FOLDER,
-                RIGHT_SHOULDER_MASK_FOLDER, 
-                '',
-                OVERHEAD_RGB_FOLDER, 
-                OVERHEAD_DEPTH_FOLDER,
-                OVERHEAD_MASK_FOLDER, 
-                '',
-                WRIST_RGB_FOLDER,
-                WRIST_DEPTH_FOLDER,
-                WRIST_MASK_FOLDER, 
-                '',
-                FRONT_RGB_FOLDER,
-                FRONT_DEPTH_FOLDER,
-                FRONT_MASK_FOLDER, 
-                '']
-
-    data_paths = [os.path.join(example_path, p) for p in data_paths]
-
+    data_types = ["rgb", "depth", "point_cloud", "mask"]
+    #full_camera_names = list(map(lambda x: ('_'.join(x), x[-1]), product(camera_names, data_types)))
 
     # Save image data first, and then None the image data, and pickle
-
-
-    for d in data_paths:
-        check_and_make(d)
-
     for i, obs in enumerate(demo):
+        for camera_name in camera_names:
+            for dtype in data_types:
 
-        for name, dtype, path in zip(data_names, data_types, data_paths):
-            data = getattr(obs, name, None)
-            if dtype == 'rgb':                
-                data = Image.fromarray(data)
-            elif dtype == 'depth':
-                data = utils.float_array_to_rgb_image(data, scale_factor=DEPTH_SCALE)
-            elif dtype == 'point_cloud':
-                continue
-            elif dtype == 'mask':
-                data = Image.fromarray((data * 255).astype(np.uint8))
-            else:
-                raise Exception('Invalid data type')
+                camera_full_name = f"{camera_name}_{dtype}"
+                data_path = os.path.join(example_path, camera_full_name)
+                os.makedirs(data_path, exist_ok=True)
 
-            if data is not None:
-                logging.info("saving %s", name)
-                data.save(os.path.join(path, IMAGE_FORMAT % i))
-            
+                data = obs.perception_data.get(camera_full_name, None)
 
-        for name in data_names:
-            setattr(obs, name, None)
+                if data is not None:
+                    if dtype == 'rgb':                
+                        data = Image.fromarray(data)
+                    elif dtype == 'depth':
+                        data = utils.float_array_to_rgb_image(data, scale_factor=DEPTH_SCALE)
+                    elif dtype == 'point_cloud':
+                        continue
+                    elif dtype == 'mask':
+                        data = Image.fromarray((data * 255).astype(np.uint8))
+                    else:
+                        raise Exception('Invalid data type')    
+                    logging.debug("saving %s", camera_full_name)
+                    data.save(os.path.join(data_path, f"{dtype}_{i:04d}.png"))
+                    
+        # ..why don't we put everything into a pickle file?
+        obs.perception_data.clear()
+
+    print(len(demo))
 
     # Save the low-dimension data
     with open(os.path.join(example_path, LOW_DIM_PICKLE), 'wb') as f:
@@ -165,37 +106,15 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
     num_tasks = len(tasks)
 
     img_size = list(map(int, FLAGS.image_size))
-
     obs_config = ObservationConfig()
     obs_config.set_all(True)
-    obs_config.right_shoulder_camera.image_size = img_size
-    obs_config.left_shoulder_camera.image_size = img_size
-    obs_config.overhead_camera.image_size = img_size
-    obs_config.wrist_camera.image_size = img_size
-    obs_config.front_camera.image_size = img_size
 
-    # Store depth as 0 - 1
-    obs_config.right_shoulder_camera.depth_in_meters = False
-    obs_config.left_shoulder_camera.depth_in_meters = False
-    obs_config.overhead_camera.depth_in_meters = False
-    obs_config.wrist_camera.depth_in_meters = False
-    obs_config.front_camera.depth_in_meters = False
-
-    # We want to save the masks as rgb encodings.
-    obs_config.left_shoulder_camera.masks_as_one_channel = False
-    obs_config.right_shoulder_camera.masks_as_one_channel = False
-    obs_config.overhead_camera.masks_as_one_channel = False
-    obs_config.wrist_camera.masks_as_one_channel = False
-    obs_config.front_camera.masks_as_one_channel = False
-
+    default_config_params = {"image_size": img_size, "depth_in_meters": False, "masks_as_one_channel": False}
     if FLAGS.renderer == 'opengl':
-        obs_config.right_shoulder_camera.render_mode = RenderMode.OPENGL
-        obs_config.left_shoulder_camera.render_mode = RenderMode.OPENGL
-        obs_config.overhead_camera.render_mode = RenderMode.OPENGL
-        obs_config.wrist_camera.render_mode = RenderMode.OPENGL
-        obs_config.front_camera.render_mode = RenderMode.OPENGL
-
-
+        default_config_params["render_mode"] = RenderMode.OPENGL
+    camera_configs = {camera_name: CameraConfig(**default_config_params) for camera_name in camera_names}
+    obs_config.camera_configs = camera_configs
+    
     robot_setup = 'dual_panda'
     rlbench_env = Environment(
         action_mode=BimanualMoveArmThenGripper(BimanualJointVelocity(), BimanualDiscrete()),
@@ -243,14 +162,14 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
             FLAGS.save_path, task_env.get_name(),
             VARIATIONS_FOLDER % my_variation_count)
 
-        check_and_make(variation_path)
+        os.makedirs(variation_path, exist_ok=True)
 
         with open(os.path.join(
                 variation_path, VARIATION_DESCRIPTIONS), 'wb') as f:
             pickle.dump(descriptions, f)
 
         episodes_path = os.path.join(variation_path, EPISODES_FOLDER)
-        check_and_make(episodes_path)
+        os.makedirs(episodes_path, exist_ok=True)
 
         abort_variation = False
         for ex_idx in range(FLAGS.episodes_per_task):
@@ -298,36 +217,14 @@ def run_all_variations(i, lock, task_index, variation_count, results, file_lock,
     num_tasks = len(tasks)
 
     img_size = list(map(int, FLAGS.image_size))
-
     obs_config = ObservationConfig()
     obs_config.set_all(True)
-    obs_config.right_shoulder_camera.image_size = img_size
-    obs_config.left_shoulder_camera.image_size = img_size
-    obs_config.overhead_camera.image_size = img_size
-    obs_config.wrist_camera.image_size = img_size
-    obs_config.front_camera.image_size = img_size
 
-    # Store depth as 0 - 1
-    obs_config.right_shoulder_camera.depth_in_meters = False
-    obs_config.left_shoulder_camera.depth_in_meters = False
-    obs_config.overhead_camera.depth_in_meters = False
-    obs_config.wrist_camera.depth_in_meters = False
-    obs_config.front_camera.depth_in_meters = False
-
-    # We want to save the masks as rgb encodings.
-    obs_config.left_shoulder_camera.masks_as_one_channel = False
-    obs_config.right_shoulder_camera.masks_as_one_channel = False
-    obs_config.overhead_camera.masks_as_one_channel = False
-    obs_config.wrist_camera.masks_as_one_channel = False
-    obs_config.front_camera.masks_as_one_channel = False
-
+    default_config_params = {"image_size": img_size, "depth_in_meters": False, "masks_as_one_channel": False}
     if FLAGS.renderer == 'opengl':
-        obs_config.right_shoulder_camera.render_mode = RenderMode.OPENGL
-        obs_config.left_shoulder_camera.render_mode = RenderMode.OPENGL
-        obs_config.overhead_camera.render_mode = RenderMode.OPENGL
-        obs_config.wrist_camera.render_mode = RenderMode.OPENGL
-        obs_config.front_camera.render_mode = RenderMode.OPENGL
-
+        default_config_params["render_mode"] = RenderMode.OPENGL
+    camera_configs = {camera_name: CameraConfig(**default_config_params) for camera_name in camera_names}
+    obs_config.camera_configs = camera_configs
 
     robot_setup = 'dual_panda'
     rlbench_env = Environment(
@@ -356,10 +253,10 @@ def run_all_variations(i, lock, task_index, variation_count, results, file_lock,
         variation_path = os.path.join(
             FLAGS.save_path, task_env.get_name(),
             VARIATIONS_ALL_FOLDER)
-        check_and_make(variation_path)
+        os.makedirs(variation_path, exist_ok=True)
 
         episodes_path = os.path.join(variation_path, EPISODES_FOLDER)
-        check_and_make(episodes_path)
+        os.makedirs(episodes_path, exist_ok=True)
 
         abort_variation = False
         for ex_idx in range(FLAGS.episodes_per_task):
@@ -415,7 +312,6 @@ def run_all_variations(i, lock, task_index, variation_count, results, file_lock,
 
 
 def main(argv):
-
     
     bimanual_task_files = [t.replace('.py', '') for t in os.listdir(task.BIMANUAL_TASKS_PATH)
                   if t != '__init__.py' and t.endswith('.py')]
@@ -438,7 +334,7 @@ def main(argv):
     variation_count = manager.Value('i', 0)
     lock = manager.Lock()
 
-    check_and_make(FLAGS.save_path)
+    os.makedirs(FLAGS.save_path, exist_ok=True)
 
     # run_all_variations(0, lock, task_index, variation_count, result_dict, file_lock, tasks)
     run_fn = run_all_variations if FLAGS.all_variations else run

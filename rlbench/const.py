@@ -13,8 +13,6 @@ from pyrep.robots.end_effectors.dual_panda_gripper import PandaGripperLeft, Pand
 
 
 
-
-
 colors = [
     ('red', (1.0, 0.0, 0.0)),
     ('maroon', (0.5, 0.0, 0.0)),

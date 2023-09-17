@@ -1,5 +1,8 @@
 import importlib
 import pickle
+
+from itertools import product            
+import os
 from os import listdir
 from os.path import join, exists
 from typing import List
@@ -76,6 +79,10 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
         raise RuntimeError(
             'You asked for %d examples, but only %d were available.' % (
                 amount, len(examples)))
+    
+    if amount > len(examples[from_episode_number:]):
+        raise RuntimeError('You specified from_episode_number=%d, but only %d examples were available', from_episode_number,  len(examples))
+
     if random_selection:
         selected_examples = np.random.choice(examples, amount, replace=False)
     else:
@@ -103,67 +110,64 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
         else:
             descriptions = ["unknown task description"]
 
-        l_sh_rgb_f = join(example_path, LEFT_SHOULDER_RGB_FOLDER)
-        l_sh_depth_f = join(example_path, LEFT_SHOULDER_DEPTH_FOLDER)
-        l_sh_mask_f = join(example_path, LEFT_SHOULDER_MASK_FOLDER)
-        r_sh_rgb_f = join(example_path, RIGHT_SHOULDER_RGB_FOLDER)
-        r_sh_depth_f = join(example_path, RIGHT_SHOULDER_DEPTH_FOLDER)
-        r_sh_mask_f = join(example_path, RIGHT_SHOULDER_MASK_FOLDER)
-        oh_rgb_f = join(example_path, OVERHEAD_RGB_FOLDER)
-        oh_depth_f = join(example_path, OVERHEAD_DEPTH_FOLDER)
-        oh_mask_f = join(example_path, OVERHEAD_MASK_FOLDER)
-        wrist_rgb_f = join(example_path, WRIST_RGB_FOLDER)
-        wrist_depth_f = join(example_path, WRIST_DEPTH_FOLDER)
-        wrist_mask_f = join(example_path, WRIST_MASK_FOLDER)
-        front_rgb_f = join(example_path, FRONT_RGB_FOLDER)
-        front_depth_f = join(example_path, FRONT_DEPTH_FOLDER)
-        front_mask_f = join(example_path, FRONT_MASK_FOLDER)
-
         num_steps = len(obs)
 
-        if not (num_steps == len(listdir(l_sh_rgb_f)) == len(
-                listdir(l_sh_depth_f)) == len(listdir(r_sh_rgb_f)) == len(
-                listdir(r_sh_depth_f)) == len(listdir(oh_rgb_f)) == len(
-                listdir(oh_depth_f)) == len(listdir(wrist_rgb_f)) == len(
-                listdir(wrist_depth_f)) == len(listdir(front_rgb_f)) == len(
-                listdir(front_depth_f))):
-            raise RuntimeError('Broken dataset assumption')
+        camera_names = obs_config.camera_configs.keys()
+
+        data_types = ["rgb", "depth", "mask"]
+        full_camera_names = map(lambda x: ('_'.join(x), x[-1]), product(camera_names, data_types))
+        
+        for camera_name, _ in full_camera_names:
+            data_path = os.path.join(example_path, camera_name)
+            if num_steps != len(os.listdir(data_path)):
+                print(f"not sufficent data points {data_path} expected {num_steps} was {len(os.listdir(data_path))}")
+                #raise RuntimeError('Broken dataset assumption')
 
         for i in range(num_steps):
             # descriptions
             obs[i].misc['descriptions'] = descriptions
+           
+            for camera_name, camera_config in obs_config.camera_configs.items():                
 
-            si = IMAGE_FORMAT % i
-            if obs_config.left_shoulder_camera.rgb:
-                obs[i].left_shoulder_rgb = join(l_sh_rgb_f, si)
-            if obs_config.left_shoulder_camera.depth or obs_config.left_shoulder_camera.point_cloud:
-                obs[i].left_shoulder_depth = join(l_sh_depth_f, si)
-            if obs_config.left_shoulder_camera.mask:
-                obs[i].left_shoulder_mask = join(l_sh_mask_f, si)
-            if obs_config.right_shoulder_camera.rgb:
-                obs[i].right_shoulder_rgb = join(r_sh_rgb_f, si)
-            if obs_config.right_shoulder_camera.depth or obs_config.right_shoulder_camera.point_cloud:
-                obs[i].right_shoulder_depth = join(r_sh_depth_f, si)
-            if obs_config.right_shoulder_camera.mask:
-                obs[i].right_shoulder_mask = join(r_sh_mask_f, si)
-            if obs_config.overhead_camera.rgb:
-                obs[i].overhead_rgb = join(oh_rgb_f, si)
-            if obs_config.overhead_camera.depth or obs_config.overhead_camera.point_cloud:
-                obs[i].overhead_depth = join(oh_depth_f, si)
-            if obs_config.overhead_camera.mask:
-                obs[i].overhead_mask = join(oh_mask_f, si)
-            if obs_config.wrist_camera.rgb:
-                obs[i].wrist_rgb = join(wrist_rgb_f, si)
-            if obs_config.wrist_camera.depth or obs_config.wrist_camera.point_cloud:
-                obs[i].wrist_depth = join(wrist_depth_f, si)
-            if obs_config.wrist_camera.mask:
-                obs[i].wrist_mask = join(wrist_mask_f, si)
-            if obs_config.front_camera.rgb:
-                obs[i].front_rgb = join(front_rgb_f, si)
-            if obs_config.front_camera.depth or obs_config.front_camera.point_cloud:
-                obs[i].front_depth = join(front_depth_f, si)
-            if obs_config.front_camera.mask:
-                obs[i].front_mask = join(front_mask_f, si)
+                if camera_config.rgb:
+                    data_path = os.path.join(example_path, f"{camera_name}_rgb")
+                    image_name = f"rgb_{i:04d}.png"
+                    image_path = os.path.join(data_path, image_name)
+                    image = np.array(_resize_if_needed(Image.open(image_path), camera_config.image_size))
+                    obs[i].perception_data[f"{camera_name}_rgb"] = image
+                
+                if camera_config.depth or camera_config.point_cloud:
+                    data_path = os.path.join(example_path, f"{camera_name}_depth")
+                    image_name = f"depth_{i:04d}.png"
+                    image_path = os.path.join(data_path, image_name)
+                    image = image_to_float_array( _resize_if_needed(Image.open(image_path), camera_config.image_size),DEPTH_SCALE)
+
+                    if camera_config.depth:
+                        if camera_config.depth_in_meters:
+                            near = obs[i].misc[f'{camera_name}_camera_near']
+                            far = obs[i].misc[f'{camera_name}_camera_far']
+                            depth_image_m = near + image * (far - near)
+                            obs[i].perception_data[f"{camera_name}_depth"] = camera_config.depth_noise.apply(depth_image_m)
+                        else:                        
+                            obs[i].perception_data[f"{camera_name}_depth"] = camera_config.depth_noise.apply(image)
+
+                    if camera_config.point_cloud:
+                        near = obs[i].misc[f'{camera_name}_camera_near']
+                        far = obs[i].misc[f'{camera_name}_camera_far']
+                        depth_image_m = near + image * (far - near)
+
+                        obs[i].perception_data[f"{camera_name}_point_cloud"] = VisionSensor.pointcloud_from_depth_and_camera_params(
+                        depth_image_m,
+                        obs[i].misc[f'{camera_name}_camera_extrinsics'],
+                        obs[i].misc[f'{camera_name}_camera_intrinsics'])
+               
+
+                if camera_config.mask:
+                    data_path = os.path.join(example_path, f"{camera_name}_mask")
+                    image_name = f"mask_{i:04d}.png"
+                    image_path = os.path.join(data_path, image_name)
+                    obs[i].perception_data[f"{camera_name}_mask"] = rgb_handles_to_mask(np.array(_resize_if_needed(Image.open(image_path), camera_config.image_size)))
+          
 
             # Remove low dim info if necessary
             if not obs_config.joint_velocities:
@@ -183,162 +187,7 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
             if not obs_config.task_low_dim_state:
                 obs[i].task_low_dim_state = None
 
-        if not image_paths:
-            for i in range(num_steps):
-                if obs_config.left_shoulder_camera.rgb:
-                    obs[i].left_shoulder_rgb = np.array(
-                        _resize_if_needed(
-                            Image.open(obs[i].left_shoulder_rgb),
-                            obs_config.left_shoulder_camera.image_size))
-                if obs_config.right_shoulder_camera.rgb:
-                    obs[i].right_shoulder_rgb = np.array(
-                        _resize_if_needed(Image.open(
-                        obs[i].right_shoulder_rgb),
-                            obs_config.right_shoulder_camera.image_size))
-                if obs_config.overhead_camera.rgb:
-                    obs[i].overhead_rgb = np.array(
-                        _resize_if_needed(Image.open(
-                        obs[i].overhead_rgb),
-                            obs_config.overhead_camera.image_size))
-                if obs_config.wrist_camera.rgb:
-                    obs[i].wrist_rgb = np.array(
-                        _resize_if_needed(
-                            Image.open(obs[i].wrist_rgb),
-                            obs_config.wrist_camera.image_size))
-                if obs_config.front_camera.rgb:
-                    obs[i].front_rgb = np.array(
-                        _resize_if_needed(
-                            Image.open(obs[i].front_rgb),
-                            obs_config.front_camera.image_size))
 
-                if obs_config.left_shoulder_camera.depth or obs_config.left_shoulder_camera.point_cloud:
-                    l_sh_depth = image_to_float_array(
-                        _resize_if_needed(
-                            Image.open(obs[i].left_shoulder_depth),
-                            obs_config.left_shoulder_camera.image_size),
-                        DEPTH_SCALE)
-                    near = obs[i].misc['left_shoulder_camera_near']
-                    far = obs[i].misc['left_shoulder_camera_far']
-                    l_sh_depth_m = near + l_sh_depth * (far - near)
-                    if obs_config.left_shoulder_camera.depth:
-                        d = l_sh_depth_m if obs_config.left_shoulder_camera.depth_in_meters else l_sh_depth
-                        obs[i].left_shoulder_depth = obs_config.left_shoulder_camera.depth_noise.apply(d)
-                    else:
-                        obs[i].left_shoulder_depth = None
-
-                if obs_config.right_shoulder_camera.depth or obs_config.right_shoulder_camera.point_cloud:
-                    r_sh_depth = image_to_float_array(
-                        _resize_if_needed(
-                            Image.open(obs[i].right_shoulder_depth),
-                            obs_config.right_shoulder_camera.image_size),
-                        DEPTH_SCALE)
-                    near = obs[i].misc['right_shoulder_camera_near']
-                    far = obs[i].misc['right_shoulder_camera_far']
-                    r_sh_depth_m = near + r_sh_depth * (far - near)
-                    if obs_config.right_shoulder_camera.depth:
-                        d = r_sh_depth_m if obs_config.right_shoulder_camera.depth_in_meters else r_sh_depth
-                        obs[i].right_shoulder_depth = obs_config.right_shoulder_camera.depth_noise.apply(d)
-                    else:
-                        obs[i].right_shoulder_depth = None
-
-                if obs_config.overhead_camera.depth or obs_config.overhead_camera.point_cloud:
-                    oh_depth = image_to_float_array(
-                        _resize_if_needed(
-                            Image.open(obs[i].overhead_depth),
-                            obs_config.overhead_camera.image_size),
-                        DEPTH_SCALE)
-                    near = obs[i].misc['overhead_camera_near']
-                    far = obs[i].misc['overhead_camera_far']
-                    oh_depth_m = near + oh_depth * (far - near)
-                    if obs_config.overhead_camera.depth:
-                        d = oh_depth_m if obs_config.overhead_camera.depth_in_meters else oh_depth
-                        obs[i].overhead_depth = obs_config.overhead_camera.depth_noise.apply(d)
-                    else:
-                        obs[i].overhead_depth = None
-
-                if obs_config.wrist_camera.depth or obs_config.wrist_camera.point_cloud:
-                    wrist_depth = image_to_float_array(
-                        _resize_if_needed(
-                            Image.open(obs[i].wrist_depth),
-                            obs_config.wrist_camera.image_size),
-                        DEPTH_SCALE)
-                    near = obs[i].misc['wrist_camera_near']
-                    far = obs[i].misc['wrist_camera_far']
-                    wrist_depth_m = near + wrist_depth * (far - near)
-                    if obs_config.wrist_camera.depth:
-                        d = wrist_depth_m if obs_config.wrist_camera.depth_in_meters else wrist_depth
-                        obs[i].wrist_depth = obs_config.wrist_camera.depth_noise.apply(d)
-                    else:
-                        obs[i].wrist_depth = None
-
-                if obs_config.front_camera.depth or obs_config.front_camera.point_cloud:
-                    front_depth = image_to_float_array(
-                        _resize_if_needed(
-                            Image.open(obs[i].front_depth),
-                            obs_config.front_camera.image_size),
-                        DEPTH_SCALE)
-                    near = obs[i].misc['front_camera_near']
-                    far = obs[i].misc['front_camera_far']
-                    front_depth_m = near + front_depth * (far - near)
-                    if obs_config.front_camera.depth:
-                        d = front_depth_m if obs_config.front_camera.depth_in_meters else front_depth
-                        obs[i].front_depth = obs_config.front_camera.depth_noise.apply(d)
-                    else:
-                        obs[i].front_depth = None
-
-                if obs_config.left_shoulder_camera.point_cloud:
-                    obs[i].left_shoulder_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
-                        l_sh_depth_m,
-                        obs[i].misc['left_shoulder_camera_extrinsics'],
-                        obs[i].misc['left_shoulder_camera_intrinsics'])
-                if obs_config.right_shoulder_camera.point_cloud:
-                    obs[i].right_shoulder_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
-                        r_sh_depth_m,
-                        obs[i].misc['right_shoulder_camera_extrinsics'],
-                        obs[i].misc['right_shoulder_camera_intrinsics'])
-                if obs_config.overhead_camera.point_cloud:
-                    obs[i].overhead_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
-                        oh_depth_m,
-                        obs[i].misc['overhead_camera_extrinsics'],
-                        obs[i].misc['overhead_camera_intrinsics'])
-                if obs_config.wrist_camera.point_cloud:
-                    obs[i].wrist_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
-                        wrist_depth_m,
-                        obs[i].misc['wrist_camera_extrinsics'],
-                        obs[i].misc['wrist_camera_intrinsics'])
-                if obs_config.front_camera.point_cloud:
-                    obs[i].front_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
-                        front_depth_m,
-                        obs[i].misc['front_camera_extrinsics'],
-                        obs[i].misc['front_camera_intrinsics'])
-
-                # Masks are stored as coded RGB images.
-                # Here we transform them into 1 channel handles.
-                if obs_config.left_shoulder_camera.mask:
-                    obs[i].left_shoulder_mask = rgb_handles_to_mask(
-                        np.array(_resize_if_needed(Image.open(
-                            obs[i].left_shoulder_mask),
-                            obs_config.left_shoulder_camera.image_size)))
-                if obs_config.right_shoulder_camera.mask:
-                    obs[i].right_shoulder_mask = rgb_handles_to_mask(
-                        np.array(_resize_if_needed(Image.open(
-                            obs[i].right_shoulder_mask),
-                            obs_config.right_shoulder_camera.image_size)))
-                if obs_config.overhead_camera.mask:
-                    obs[i].overhead_mask = rgb_handles_to_mask(
-                        np.array(_resize_if_needed(Image.open(
-                            obs[i].overhead_mask),
-                            obs_config.overhead_camera.image_size)))
-                if obs_config.wrist_camera.mask:
-                    obs[i].wrist_mask = rgb_handles_to_mask(np.array(
-                        _resize_if_needed(Image.open(
-                            obs[i].wrist_mask),
-                            obs_config.wrist_camera.image_size)))
-                if obs_config.front_camera.mask:
-                    obs[i].front_mask = rgb_handles_to_mask(np.array(
-                        _resize_if_needed(Image.open(
-                            obs[i].front_mask),
-                            obs_config.front_camera.image_size)))
 
         demos.append(obs)
     return demos

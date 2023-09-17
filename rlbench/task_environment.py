@@ -51,8 +51,6 @@ class TaskEnvironment(object):
 
         self._scene.load(self._task)
         self._pyrep.start()
-        self._robot_shapes = self._robot.arm.get_objects_in_tree(
-            object_type=ObjectType.SHAPE)
 
         if self._robot.is_bimanual:
              #..fixme

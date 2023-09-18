@@ -42,7 +42,7 @@ class Observation:
 #..todo:: rename to ProprioceptionObservation
 
 @dataclass 
-class UnimodalObservationData:
+class UnimanualObservationData:
 
     joint_velocities: np.ndarray
     joint_positions: np.ndarray
@@ -56,7 +56,7 @@ class UnimodalObservationData:
     ignore_collisions: np.ndarray
 
 @dataclass
-class UnimodalObservation(UnimodalObservationData, Observation):
+class UnimanualObservation(UnimanualObservationData, Observation):
     
     
     @Observation.is_bimanual.getter
@@ -81,14 +81,14 @@ class UnimodalObservation(UnimodalObservationData, Observation):
 @dataclass
 class BimanualObservation(Observation):
     
-    right: UnimodalObservationData = None
-    left: UnimodalObservationData = None
+    right: UnimanualObservationData = None
+    left: UnimanualObservationData = None
 
     @Observation.is_bimanual.getter
     def is_bimanual(self):
         return True
 
-    def get_low_dim_data(self, robot: UnimodalObservationData) -> np.ndarray:
+    def get_low_dim_data(self, robot: UnimanualObservationData) -> np.ndarray:
         """Gets a 1D array of all the low-dimensional obseervations.
 
         :return: 1D array of observations.

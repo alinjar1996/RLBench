@@ -14,8 +14,8 @@ from pyrep.robots.end_effectors.gripper import Gripper
 from rlbench.backend.exceptions import (
     WaypointError, BoundaryError, NoWaypointsError, DemoError)
 from rlbench.backend.observation import Observation
-from rlbench.backend.observation import UnimodalObservationData
-from rlbench.backend.observation import UnimodalObservation
+from rlbench.backend.observation import UnimanualObservationData
+from rlbench.backend.observation import UnimanualObservation
 from rlbench.backend.observation import BimanualObservation
 
 from rlbench.backend.robot import Robot
@@ -344,8 +344,8 @@ class Scene(object):
 
 
         if self.robot.is_bimanual:
-            observation_data["right"] = UnimodalObservationData(**get_proprioception(self.robot.right_arm, self.robot.right_gripper))
-            observation_data["left"] = UnimodalObservationData(**get_proprioception(self.robot.left_arm, self.robot.left_gripper))
+            observation_data["right"] = UnimanualObservationData(**get_proprioception(self.robot.right_arm, self.robot.right_gripper))
+            observation_data["left"] = UnimanualObservationData(**get_proprioception(self.robot.left_arm, self.robot.left_gripper))
         else:
             observation_data.update(get_proprioception(self.robot.arm, self.robot.gripper))
 
@@ -362,7 +362,7 @@ class Scene(object):
         if self.robot.is_bimanual:
             obs = BimanualObservation(**observation_data)
         else:
-            obs = UnimodalObservation(**observation_data)
+            obs = UnimanualObservation(**observation_data)
 
         obs = self.task.decorate_observation(obs)
 

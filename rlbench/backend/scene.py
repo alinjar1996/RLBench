@@ -97,9 +97,13 @@ class Scene(object):
         if self.robot.is_bimanual:
                self._robot_shapes = [self.robot.right_arm.get_objects_in_tree(object_type=ObjectType.SHAPE), 
                self.robot.left_arm.get_objects_in_tree(object_type=ObjectType.SHAPE)]
+               self._right_execute_demo_joint_position_action = None
+               self._left_execute_demo_joint_position_action = None
         else:
             self._robot_shapes = self.robot.arm.get_objects_in_tree(
                 object_type=ObjectType.SHAPE)
+            
+            self._execute_demo_joint_position_action = None
 
     def load(self, task: Task) -> None:
         """Loads the task and positions at the centre of the workspace.
@@ -424,6 +428,7 @@ class Scene(object):
                 while not done:
                     done = path.step()
                     self.step()
+                    self._execute_demo_joint_position_action = path.get_executed_joint_position_action()
                     do_record()
                     success, term = self.task.success()
 
@@ -529,6 +534,8 @@ class Scene(object):
                         left_done = True
 
                     self.step()
+                    self._right_execute_demo_joint_position_action = right_path.get_executed_joint_position_action()
+                    self._left_execute_demo_joint_position_action = left_path.get_executed_joint_position_action()
                     do_record()
                     success, term = self.task.success()
 
@@ -698,4 +705,14 @@ class Scene(object):
                     f'{camera_name}_camera_far': camera.get_far_clipping_plane(),
                 })
 
+
+        if self.robot.is_bimanual and self._right_execute_demo_joint_position_action is not None:
+            misc.update({"right_executed_demo_joint_position_action": self._right_execute_demo_joint_position_action,
+                         "left_executed_demo_joint_position_action": self._left_execute_demo_joint_position_action})
+            self._right_execute_demo_joint_position_action = None
+            self._right_execute_demo_joint_position_action = None
+        
+        elif not self.robot.is_bimanual and self._execute_demo_joint_position_action is not None:
+            misc.update({"executed_demo_joint_position_action": self._execute_demo_joint_position_action})
+            self._execute_demo_joint_position_action = None
         return misc

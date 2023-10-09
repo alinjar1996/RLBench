@@ -49,16 +49,16 @@ def calculate_delta_pose(robot: Robot, action: np.ndarray):
 class ArmActionMode(object):
 
     @abstractmethod
-    def action(self, scene: Scene, action: np.ndarray):
+    def action(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
         pass
 
-    def action_step(self, scene: Scene, action: np.ndarray):
+    def action_step(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
         pass
 
-    def action_pre_step(self, scene: Scene, action: np.ndarray):
+    def action_pre_step(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
         pass
 
-    def action_post_step(self, scene: Scene, action: np.ndarray):
+    def action_post_step(self, scene: Scene, action: np.ndarray, ignore_collisions: bool = True):
         pass
 
     @abstractmethod
@@ -137,6 +137,61 @@ class BimanualJointVelocity(ArmActionMode):
         robot.right_arm.set_motor_locked_at_zero_velocity(True)
         robot.left_arm.set_control_loop_enabled(False)
         robot.left_arm.set_motor_locked_at_zero_velocity(True)
+        
+
+class BimanualJointPosition(ArmActionMode):
+
+    def __init__(self, absolute_mode: bool = True):
+        self._absolute_mode = absolute_mode
+        self._callable_each_step = None
+
+    def action(self, scene: Scene, action: np.ndarray):
+        self.action_pre_step(scene, action)
+        self.action_step(scene, action)
+        self.action_post_step(scene, action)
+
+    def action_pre_step(self, scene: Scene, action: np.ndarray):
+        assert_action_shape(action, self.action_shape(scene))
+        
+        right_action = action[:7]
+        left_action = action[7:]
+
+        if not self._absolute_mode:
+            right_action = np.array(scene.robot.right_arm.get_joint_positions()) + right_action
+            left_action = np.array(scene.robot.left_arm.get_joint_positions()) + left_action
+            
+        scene.robot.right_arm.set_joint_target_positions(right_action)
+        scene.robot.left_arm.set_joint_target_positions(left_action)
+
+    def action_step(self, scene: Scene, action: np.ndarray):
+        scene.step()
+        if self._callable_each_step is not None:
+            self._callable_each_step(scene.get_observation())
+
+    def action_post_step(self, scene: Scene, action: np.ndarray):
+        scene.robot.right_arm.set_joint_target_positions(
+            scene.robot.right_arm.get_joint_positions())
+        scene.robot.left_arm.set_joint_target_positions(
+            scene.robot.left_arm.get_joint_positions())
+    
+    def set_callable_each_step(self, callable_each_step):
+        self._callable_each_step = callable_each_step
+
+    def action_shape(self, scene: Scene) -> tuple:
+        return (14, )
+        #return SUPPORTED_ROBOTS[scene.robot_setup][2],
+
+    def record_end(self, scene, steps=60, step_scene=True):
+        if self._callable_each_step is not None:
+            for _ in range(steps):
+                if step_scene:
+                    scene.step()
+                self._callable_each_step(scene.get_observation())
+
+
+    def unimanual_action_shape(self, scene: Scene) -> tuple:
+        return (7, )
+
 
 
 class JointPosition(ArmActionMode):
@@ -156,6 +211,8 @@ class JointPosition(ArmActionMode):
             absolute_mode: If we should opperate in 'absolute', or 'delta' mode.
         """
         self._absolute_mode = absolute_mode
+        self._callable_each_step = None
+
 
     def action(self, scene: Scene, action: np.ndarray):
         self.action_pre_step(scene, action)
@@ -164,12 +221,15 @@ class JointPosition(ArmActionMode):
 
     def action_pre_step(self, scene: Scene, action: np.ndarray):
         assert_action_shape(action, self.action_shape(scene))
-        a = action if self._absolute_mode else np.array(
-            scene.robot.arm.get_joint_positions()) + action
-        scene.robot.arm.set_joint_target_positions(a)
+        if not  self._absolute_mode :
+            action = np.array(scene.robot.arm.get_joint_positions()) + action
+        scene.robot.arm.set_joint_target_positions(action)
 
     def action_step(self, scene: Scene, action: np.ndarray):
         scene.step()
+        if self._callable_each_step is not None:
+            # Record observations
+            self._callable_each_step(scene.get_observation())
 
     def action_post_step(self, scene: Scene, action: np.ndarray):
         scene.robot.arm.set_joint_target_positions(
@@ -177,6 +237,17 @@ class JointPosition(ArmActionMode):
 
     def action_shape(self, scene: Scene) -> tuple:
         return SUPPORTED_ROBOTS[scene.robot_setup][2],
+
+    def set_callable_each_step(self, callable_each_step):
+        self._callable_each_step = callable_each_step
+
+    def record_end(self, scene, steps=60, step_scene=True):
+        if self._callable_each_step is not None:
+            for _ in range(steps):
+                if step_scene:
+                    scene.step()
+                self._callable_each_step(scene.get_observation())
+ 
 
 
 

@@ -101,8 +101,7 @@ class Scene(object):
                self._left_execute_demo_joint_position_action = None
         else:
             self._robot_shapes = self.robot.arm.get_objects_in_tree(
-                object_type=ObjectType.SHAPE)
-            
+                object_type=ObjectType.SHAPE)           
             self._execute_demo_joint_position_action = None
 
     def load(self, task: Task) -> None:
@@ -707,10 +706,11 @@ class Scene(object):
 
 
         if self.robot.is_bimanual and self._right_execute_demo_joint_position_action is not None:
+            
             misc.update({"right_executed_demo_joint_position_action": self._right_execute_demo_joint_position_action,
                          "left_executed_demo_joint_position_action": self._left_execute_demo_joint_position_action})
             self._right_execute_demo_joint_position_action = None
-            self._right_execute_demo_joint_position_action = None
+            self._left_execute_demo_joint_position_action = None
         
         elif not self.robot.is_bimanual and self._execute_demo_joint_position_action is not None:
             misc.update({"executed_demo_joint_position_action": self._execute_demo_joint_position_action})

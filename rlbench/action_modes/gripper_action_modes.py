@@ -5,7 +5,7 @@ import numpy as np
 from rlbench.backend.exceptions import InvalidActionError
 from rlbench.backend.scene import Scene
 
-from absl import logging
+import logging
 
 
 def assert_action_shape(action: np.ndarray, expected_shape: tuple):
@@ -99,9 +99,6 @@ class Discrete(GripperActionMode):
 
 
 
-
-
-
 class GripperJointPosition(GripperActionMode):
     """Control the target joint positions absolute or delta) of the gripper.
 
@@ -158,6 +155,37 @@ class GripperJointPosition(GripperActionMode):
         """
         return np.array([0]), np.array([0.04])
     
+
+
+class BimanualGripperJointPosition(GripperJointPosition):
+    
+    def action_pre_step(self, scene: Scene, action: np.ndarray):
+        if not self._control_mode_set:
+            scene.robot.right_gripper.set_control_loop_enabled(True)
+            scene.robot.left_gripper.set_control_loop_enabled(True)
+            self._control_mode_set = True
+
+        assert_action_shape(action, self.action_shape(scene.robot))
+    
+        right_action = action[:1].repeat(2) 
+        left_action = action[1:].repeat(2) 
+
+        if not self._absolute_mode:
+            right_action = right_action + np.array(scene.robot.gripper.get_joint_positions())
+            left_action = left_action + np.array(scene.robot.gripper.get_joint_positions())
+            
+        scene.robot.right_gripper.set_joint_target_positions(right_action)
+        scene.robot.left_gripper.set_joint_target_positions(left_action)
+
+    def action_step(self, scene: Scene, action: np.ndarray):
+        scene.step()
+
+    def action_post_step(self, scene: Scene, action: np.ndarray):
+        scene.robot.gripper.set_joint_target_positions(
+            scene.robot.gripper.get_joint_positions())
+
+
+
 class UnimanualDiscrete(GripperActionMode):
     """Control if the gripper is open or closed in a discrete manner.
 
@@ -317,4 +345,3 @@ class BimanualDiscrete(Discrete):
         Returns: Returns the min and max of the action.
         """
         return np.array([0]), np.array([0.04])
-

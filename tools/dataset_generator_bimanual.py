@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import os
 import logging
 from functools import partial
@@ -12,6 +13,7 @@ from rlbench.observation_config import CameraConfig
 
 from rlbench.action_modes.action_mode import BimanualMoveArmThenGripper
 from rlbench.action_modes.arm_action_modes import BimanualJointVelocity
+from rlbench.action_modes.arm_action_modes import BimanualJointPosition
 from rlbench.action_modes.gripper_action_modes import BimanualDiscrete
 
 from rlbench.backend.exceptions import BoundaryError, InvalidActionError, TaskEnvironmentError, WaypointError
@@ -46,6 +48,7 @@ def save_demo(demo, example_path, variation):
 
                 camera_full_name = f"{camera_name}_{dtype}"
                 data_path = os.path.join(example_path, camera_full_name)
+                # ..todo:: actually I prefer to abort if this one exists
                 os.makedirs(data_path, exist_ok=True)
 
                 data = obs.perception_data.get(camera_full_name, None)
@@ -97,9 +100,11 @@ def run_all_variations(tasks, headless, save_path, episodes_per_task, variations
     camera_configs = {camera_name: CameraConfig(**default_config_params) for camera_name in camera_names}
     obs_config.camera_configs = camera_configs
 
+
+    # ..record date with BimanualJointPosition
     robot_setup = 'dual_panda'
     rlbench_env = Environment(
-        action_mode=BimanualMoveArmThenGripper(BimanualJointVelocity(), BimanualDiscrete()),
+        action_mode=BimanualMoveArmThenGripper(BimanualJointPosition(), BimanualDiscrete()),
         obs_config=obs_config,
         robot_setup=robot_setup,
         headless=headless)
@@ -186,6 +191,8 @@ def get_bimanual_tasks():
 @click.option("--headless/--no-headless", default=True, is_flag=True, help='Hide the simulator window')
 def main(save_path, tasks, episodes_per_task, all_variations, variations, headless):
 
+    # ..todo check if already exits
+
     mp.set_start_method("spawn")
 
     logging.basicConfig(level=logging.INFO, handlers=[RichHandler()])
@@ -201,10 +208,13 @@ def main(save_path, tasks, episodes_per_task, all_variations, variations, headle
 
     os.makedirs(save_path, exist_ok=True)
 
-    if all_variations:
-        fn = partial(run_all_variations, headless=headless, save_path=save_path, episodes_per_task=episodes_per_task, variations=variations)
-        with ctx.Pool(processes=4) as pool:
-            pool.map(fn, tasks)
+    if not all_variations:
+        logging.error("Variations not supported")
+        sys.exit(-1)
+
+    fn = partial(run_all_variations, headless=headless, save_path=save_path, episodes_per_task=episodes_per_task, variations=variations)
+    with ctx.Pool(processes=4) as pool:
+        pool.map(fn, tasks)
 
 
 if __name__ == '__main__':

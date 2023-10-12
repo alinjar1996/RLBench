@@ -693,7 +693,6 @@ class Scene(object):
             min_rotation=min_rot, max_rotation=max_rot)
 
     def _get_misc(self):
-       
         misc = {}
         for camera_name, camera in self.camera_sensors.items():
             if camera.still_exists():
@@ -703,8 +702,7 @@ class Scene(object):
                     f'{camera_name}_camera_near': camera.get_near_clipping_plane(),
                     f'{camera_name}_camera_far': camera.get_far_clipping_plane(),
                 })
-
-
+        misc.update({"variation_index": self._variation_index})
         if self.robot.is_bimanual and self._right_execute_demo_joint_position_action is not None:
             
             misc.update({"right_executed_demo_joint_position_action": self._right_execute_demo_joint_position_action,

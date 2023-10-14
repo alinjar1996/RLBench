@@ -17,6 +17,7 @@ class RightOpenDrawer(BimanualTask):
                         for opt in self._options]
         self._waypoint1 = Dummy('waypoint1')
         self.waypoint_mapping = defaultdict(lambda: 'right')
+        self.waypoint_mapping.update({'waypoint3': 'left'})
 
     def init_episode(self, index: int) -> List[str]:
 

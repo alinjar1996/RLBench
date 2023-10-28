@@ -178,8 +178,9 @@ def run_all_variations(tasks, headless, save_path, episodes_per_task, variations
 
 
 def get_bimanual_tasks():
-    return [t.replace('.py', '') for t in
+    tasks =  [t.replace('.py', '') for t in
     os.listdir(BIMANUAL_TASKS_PATH) if t != '__init__.py' and t.endswith('.py')]
+    return sorted(tasks)
 
 
 @click.command()

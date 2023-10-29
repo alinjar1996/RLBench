@@ -2,8 +2,11 @@ from abc import abstractmethod
 
 import numpy as np
 
-from rlbench.action_modes.arm_action_modes import ArmActionMode, JointPosition
-from rlbench.action_modes.gripper_action_modes import GripperActionMode, GripperJointPosition
+from rlbench.action_modes.arm_action_modes import ArmActionMode, 
+from rlbench.action_modes.arm_action_modes import BimanualJointPosition, JointPosition
+from rlbench.action_modes.gripper_action_modes import GripperActionMode
+from rlbench.action_modes.gripper_action_modes import BimanualGripperJointPosition , GripperJointPosition
+from rlbench.action_modes.gripper_action_modes import BimanualDiscrete
 from rlbench.backend.scene import Scene
 
 
@@ -121,3 +124,39 @@ class JointPositionActionMode(ActionMode):
     def action_bounds(self):
         """Returns the min and max of the action mode."""
         return np.array(7 * [-0.1] + [0.0]), np.array(7 * [0.1] + [0.04])
+
+
+
+class BimanualJointPositionActionMode(ActionMode):
+
+    def __init__(self):
+        super(BimanualJointPositionActionMode, self).__init__(
+            BimanualJointPosition(), BimanualDiscrete())
+
+    def action(self, scene: Scene, action: np.ndarray):
+
+        assert(action.shape == (16,))
+
+        
+        arm_act_size = np.prod(self.arm_action_mode.action_shape(scene))
+        assert(arm_act_size == 14)
+
+        arm_action = np.concatenate([action[0:7], action[8:15]], axis=0 )
+        ee_action = np.array([action[7], action[15]])
+
+
+        self.arm_action_mode.action_pre_step(scene, arm_action)
+        self.gripper_action_mode.action_pre_step(scene, ee_action)
+
+        scene.step()
+
+        self.arm_action_mode.action_post_step(scene, arm_action)
+        self.gripper_action_mode.action_post_step(scene, ee_action)
+
+    def action_shape(self, scene: Scene):
+        return np.prod(self.arm_action_mode.action_shape(scene)) + np.prod(
+            self.gripper_action_mode.action_shape(scene))
+
+    def action_bounds(self):
+        """Returns the min and max of the action mode."""
+        raise Exception("Not implemented yet.")

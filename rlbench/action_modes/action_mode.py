@@ -2,10 +2,10 @@ from abc import abstractmethod
 
 import numpy as np
 
-from rlbench.action_modes.arm_action_modes import ArmActionMode, 
+from rlbench.action_modes.arm_action_modes import ArmActionMode
 from rlbench.action_modes.arm_action_modes import BimanualJointPosition, JointPosition
 from rlbench.action_modes.gripper_action_modes import GripperActionMode
-from rlbench.action_modes.gripper_action_modes import BimanualGripperJointPosition , GripperJointPosition
+from rlbench.action_modes.gripper_action_modes import BimanualGripperJointPosition, GripperJointPosition
 from rlbench.action_modes.gripper_action_modes import BimanualDiscrete
 from rlbench.backend.scene import Scene
 
@@ -129,9 +129,11 @@ class JointPositionActionMode(ActionMode):
 
 class BimanualJointPositionActionMode(ActionMode):
 
-    def __init__(self):
-        super(BimanualJointPositionActionMode, self).__init__(
-            BimanualJointPosition(), BimanualDiscrete())
+    def __init__(self, arm_action_mode=None, gripper_action_mode=None):
+        arm_action_mode = arm_action_mode or BimanualJointPosition()
+        gripper_action_mode = gripper_action_mode or BimanualDiscrete()
+
+        super(BimanualJointPositionActionMode, self).__init__(arm_action_mode, gripper_action_mode)
 
     def action(self, scene: Scene, action: np.ndarray):
 

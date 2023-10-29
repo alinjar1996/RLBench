@@ -181,8 +181,14 @@ class BimanualGripperJointPosition(GripperJointPosition):
         scene.step()
 
     def action_post_step(self, scene: Scene, action: np.ndarray):
-        scene.robot.gripper.set_joint_target_positions(
-            scene.robot.gripper.get_joint_positions())
+        scene.robot.right_gripper.set_joint_target_positions(
+            scene.robot.right_gripper.get_joint_positions())
+        
+        scene.robot.left_gripper.set_joint_target_positions(
+            scene.robot.left_gripper.get_joint_positions())        
+    
+    def action_shape(self, scene: Scene) -> tuple:
+        return 2,
 
 
 

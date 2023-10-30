@@ -72,9 +72,9 @@ class HandoverItem(BimanualTask):
         b.clear()
         for item in self.items:
             try:
-                b.sample(item, min_distance=0.15)
-            except BoundaryError as b:
-                logging.warning("error %s", b)
+                b.sample(item, min_distance=0.05)
+            except BoundaryError as err:
+                logging.warning("error %s. Sampling again while ignoring collisions ", err)
                 b.sample(item, ignore_collisions=True, min_distance=0.05)
 
         right_success_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')

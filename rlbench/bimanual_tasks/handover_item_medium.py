@@ -50,6 +50,13 @@ class HandoverItemMedium(BimanualTask):
 
         color_name, _color = colors[index]
 
+
+        b = SpawnBoundary([self.boundaries])
+        b.clear()
+        for item in self.items:
+            b.sample(item, min_distance=0.1)
+            
+
         w0 = Dummy('waypoint2')
         w0.set_position([0.0, 0.0, -0.025], relative_to=self.items[index], reset_dynamics=False)
         #w0.set_orientation([-np.pi, 0, -np.pi], relative_to=self.items[index], reset_dynamics=False)
@@ -60,11 +67,6 @@ class HandoverItemMedium(BimanualTask):
         w3 = Dummy('waypoint3')
         w3.set_position([0.0, 0.0, 0.3], relative_to=self.items[index], reset_dynamics=False)
 
-
-        #b = SpawnBoundary([self.boundaries])
-        #b.clear()
-        #for item in self.items:
-        #    b.sample(item, min_distance=0.1)
 
         right_success_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
         left_success_sensor = ProximitySensor('Panda_leftArm_gripper_attachProxSensor')
@@ -83,8 +85,8 @@ class HandoverItemMedium(BimanualTask):
     def boundary_root(self) -> Object:
         return Shape('handover_item_boundary')
     
-    #def is_static_workspace(self):
-    #    return True
+    def is_static_workspace(self):
+        return True
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

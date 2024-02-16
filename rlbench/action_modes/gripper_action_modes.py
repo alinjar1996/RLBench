@@ -211,8 +211,11 @@ class UnimanualDiscrete(GripperActionMode):
         while not done:
             if self.robot_name == 'right':
                 done = scene.robot.right_gripper.actuate(action, velocity=0.2)
-            else:
+            elif self.robot_name == 'left':
                 done = scene.robot.left_gripper.actuate(action, velocity=0.2)
+            else:
+                done = scene.robot.gripper.actuate(action, velocity=0.2)
+
             scene.pyrep.step()
             scene.task.step()
 

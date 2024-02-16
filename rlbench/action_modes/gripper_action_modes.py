@@ -6,6 +6,7 @@ from rlbench.backend.exceptions import InvalidActionError
 from rlbench.backend.scene import Scene
 
 import logging
+from abc import ABC
 
 
 def assert_action_shape(action: np.ndarray, expected_shape: tuple):
@@ -15,14 +16,15 @@ def assert_action_shape(action: np.ndarray, expected_shape: tuple):
                 str(expected_shape), str(np.shape(action))))
 
 
-class GripperActionMode(object):
+class GripperActionMode(ABC):
 
-    @abstractmethod
     def action(self, scene: Scene, action: np.ndarray):
-        pass
+        self.action_pre_step(scene, action)
+        self.action_step(scene)
+        self.action_post_step(scene, action)
 
-    def action_step(self, scene: Scene, action: np.ndarray):
-        pass
+    def action_step(self, scene: Scene):
+        scene.step()
 
     def action_pre_step(self, scene: Scene, action: np.ndarray):
         pass
@@ -123,11 +125,6 @@ class GripperJointPosition(GripperActionMode):
         self._absolute_mode = absolute_mode
         self._control_mode_set = False
 
-    def action(self, scene: Scene, action: np.ndarray):
-        self.action_pre_step(scene, action)
-        self.action_step(scene, action)
-        self.action_post_step(scene, action)
-
     def action_pre_step(self, scene: Scene, action: np.ndarray):
         if not self._control_mode_set:
             scene.robot.gripper.set_control_loop_enabled(True)
@@ -137,9 +134,6 @@ class GripperJointPosition(GripperActionMode):
         a = action if self._absolute_mode else np.array(
             scene.robot.gripper.get_joint_positions())
         scene.robot.gripper.set_joint_target_positions(a)
-
-    def action_step(self, scene: Scene, action: np.ndarray):
-        scene.step()
 
     def action_post_step(self, scene: Scene, action: np.ndarray):
         scene.robot.gripper.set_joint_target_positions(
@@ -156,17 +150,17 @@ class GripperJointPosition(GripperActionMode):
         return np.array([0]), np.array([0.04])
     
 
-
 class BimanualGripperJointPosition(GripperJointPosition):
     
     def action_pre_step(self, scene: Scene, action: np.ndarray):
+
         if not self._control_mode_set:
             scene.robot.right_gripper.set_control_loop_enabled(True)
             scene.robot.left_gripper.set_control_loop_enabled(True)
             self._control_mode_set = True
 
         assert_action_shape(action, self.action_shape(scene.robot))
-    
+
         right_action = action[:1].repeat(2) 
         left_action = action[1:].repeat(2) 
 
@@ -176,9 +170,6 @@ class BimanualGripperJointPosition(GripperJointPosition):
             
         scene.robot.right_gripper.set_joint_target_positions(right_action)
         scene.robot.left_gripper.set_joint_target_positions(left_action)
-
-    def action_step(self, scene: Scene, action: np.ndarray):
-        scene.step()
 
     def action_post_step(self, scene: Scene, action: np.ndarray):
         scene.robot.right_gripper.set_joint_target_positions(
@@ -205,6 +196,7 @@ class UnimanualDiscrete(GripperActionMode):
         self._attach_grasped_objects = attach_grasped_objects
         self._detach_before_open = detach_before_open
         self.robot_name = robot_name
+
 
     def _actuate(self, scene, action):
         done = False

@@ -22,6 +22,8 @@ from rlbench.const import SUPPORTED_ROBOTS
 
 import logging
 
+from abc import ABC
+
 
 
 def assert_action_shape(action: np.ndarray, expected_shape: tuple):
@@ -46,7 +48,7 @@ def calculate_delta_pose(robot: Robot, action: np.ndarray):
     return pose
 
 
-class ArmActionMode(object):
+class ArmActionMode(ABC):
     
     _callable_each_step = None
 
@@ -74,7 +76,7 @@ class ArmActionMode(object):
         if isinstance(robot, UnimanualRobot):
             robot.arm.set_control_loop_enabled(True)
         elif isinstance(robot, BimanualRobot):
-            logging.warning("Setting control mode for both robots")
+            logging.info("Setting control mode for both robots")
             robot.right_arm.set_control_loop_enabled(True)
             robot.left_arm.set_control_loop_enabled(True)
 

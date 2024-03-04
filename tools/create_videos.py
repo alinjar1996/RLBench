@@ -44,7 +44,7 @@ def get_bimanual_tasks():
 
 
 @click.command()
-@choice_option('--bimanual-task-files', type=click.Choice(get_bimanual_tasks()), multiple=True)
+@choice_option('--bimanual-task-files', type=click.Choice(sorted(get_bimanual_tasks())), multiple=True)
 @click.option('--add-task-description/--no-task-description', default=True)
 def render_videos_for_task(bimanual_task_files, add_task_description):
 

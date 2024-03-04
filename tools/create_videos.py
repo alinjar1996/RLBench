@@ -45,7 +45,8 @@ def get_bimanual_tasks():
 
 @click.command()
 @choice_option('--bimanual-task-files', type=click.Choice(get_bimanual_tasks()), multiple=True)
-def render_videos_for_task(bimanual_task_files):
+@click.option('--add-task-description/--no-task-description', default=True)
+def render_videos_for_task(bimanual_task_files, add_task_description):
 
     CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -69,6 +70,14 @@ def render_videos_for_task(bimanual_task_files):
     scene = Scene(pr, robot, obs_config)
 
     for task_file in bimanual_task_files:
+
+
+        if add_task_description:
+            task_name_mapping = {}
+            task_description = task_name_mapping.get(task_file, f"Demo for task {task_file}")
+        else:
+            task_description = ""
+
         task_class = name_to_task_class(task_file, True)
         task = task_class(pr, robot,  task_file.replace('.py', ''))
         try:
@@ -77,7 +86,7 @@ def render_videos_for_task(bimanual_task_files):
             pr.start()
             pr.step_ui()
             
-            record_demo(scene, task, task_file)
+            record_demo(scene, task, task_file, task_description)
             scene.reset()
             scene.unload()
 
@@ -96,10 +105,8 @@ def render_videos_for_task(bimanual_task_files):
     pr.shutdown()
 
 
-def record_demo(scene, task, task_file):
+def record_demo(scene, task, task_file, task_description):
         
-        task_name_mapping = {'bimanual_pick_laptop': 'laptop'}
-
         cam_placeholder = Dummy('cam_cinematic_placeholder')
         cam = VisionSensor.create([1920, 1200], background_color=[1.0, 1.0, 1.0])
         cam.set_pose(cam_placeholder.get_pose())
@@ -125,8 +132,6 @@ def record_demo(scene, task, task_file):
         recording_output_path = f"/tmp/{task_result}/rlbench_video_{task_file}.mp4"
 
         os.makedirs(os.path.dirname(recording_output_path), exist_ok=True)
-
-        task_description = task_name_mapping.get(task_file, f"Demo for task {task_file}")
 
         tr.save(recording_output_path, task_description, None)
 

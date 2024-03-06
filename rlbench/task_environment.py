@@ -184,6 +184,8 @@ class TaskEnvironment(object):
 
     def reset_to_demo(self, demo: Demo) -> (List[str], Observation):
         demo.restore_state()
-        variation_index = demo._observations[0].misc["variation_index"]
-        self.set_variation(variation_index)
+        # do not set variation as suggested in commit 6e79c5bac. This version
+        # of RLBench already stores the variation index
+        #variation_index = demo._observations[0].misc["variation_index"]
+        #self.set_variation(variation_index)
         return self.reset()

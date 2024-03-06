@@ -116,9 +116,9 @@ class Environment(object):
 
             logging.info("Using dual panda robot")
            
-            panda_arm = Panda()
-            panda_pos = panda_arm.get_position()
-            panda_arm.remove()
+            #panda_arm = Panda()
+            #panda_pos = panda_arm.get_position()
+            #panda_arm.remove()
 
             right_arm = PandaRight()
             left_arm = PandaLeft()

@@ -32,7 +32,6 @@ from rich.logging import RichHandler
 from click_prompt import choice_option
 from click_prompt import filepath_option
 
-IMAGE_SIZE = [128, 128]
 
 camera_names = ["over_shoulder_left", "over_shoulder_right", "overhead", "wrist_right", "wrist_left", "front"]
 
@@ -78,7 +77,7 @@ def save_demo(demo, example_path, variation):
         pickle.dump(variation, f)
 
 
-def run_all_variations(task_name, headless, save_path, episodes_per_task, variations):
+def run_all_variations(task_name, headless, save_path, episodes_per_task, image_size):
     """Each thread will choose one task and variation, and then gather
     all the episodes_per_task for that variation."""
 
@@ -93,11 +92,10 @@ def run_all_variations(task_name, headless, save_path, episodes_per_task, variat
 
     tasks = [task_file_to_task_class(task_name, True)]
 
-    img_size = list(map(int, IMAGE_SIZE))
     obs_config = ObservationConfig()
     obs_config.set_all(True)
 
-    default_config_params = {"image_size": img_size, "depth_in_meters": False, "masks_as_one_channel": False}
+    default_config_params = {"image_size": image_size, "depth_in_meters": False, "masks_as_one_channel": False}
     camera_configs = {camera_name: CameraConfig(**default_config_params) for camera_name in camera_names}
     obs_config.camera_configs = camera_configs
 
@@ -189,9 +187,11 @@ def get_bimanual_tasks():
 @choice_option('--tasks', type=click.Choice(get_bimanual_tasks()), multiple=True, help='The tasks to collect. If empty, all tasks are collected.')
 @click.option("--episodes_per_task", default=10, help="The number of episodes to collect per task.", prompt="Number of episodes")
 @click.option("--all_variations", is_flag=True, default=True, help="Include all variations when sampling epsiodes")
-@click.option("--variations", default=-1, help="Number of variations to collect per task. -1 for all.")
+#@click.option("--variations", default=-1, help="Number of variations to collect per task. -1 for all.")
 @click.option("--headless/--no-headless", default=True, is_flag=True, help='Hide the simulator window')
-def main(save_path, tasks, episodes_per_task, all_variations, variations, headless):
+#@click.option("--color-robot/--no-color-robot", default=False, is_flag=True, help='Colorize')
+@choice_option('--image-size', type=click.Choice(["128x128", "256x256", "640x480"]), multiple=False, help='Select the image_size (width, height)')
+def main(save_path, tasks, episodes_per_task, all_variations, headless, image_size):
 
     # ..todo check if already exits
 
@@ -207,6 +207,11 @@ def main(save_path, tasks, episodes_per_task, all_variations, variations, headle
         logging.error("No tasks selected!")
 
 
+    logging.info("Generating %s episodes for each tasks %s with image size %s", episodes_per_task, tasks, image_size)
+
+
+    image_size = list(map(int, image_size.split("x")))
+
     os.makedirs(save_path, exist_ok=True)
 
     if not all_variations:
@@ -215,7 +220,7 @@ def main(save_path, tasks, episodes_per_task, all_variations, variations, headle
 
     logging.debug("Selected tasks %s", tasks)
 
-    fn = partial(run_all_variations, headless=headless, save_path=save_path, episodes_per_task=episodes_per_task, variations=variations)
+    fn = partial(run_all_variations, headless=headless, save_path=save_path, episodes_per_task=episodes_per_task, image_size=image_size)
     with ctx.Pool(processes=4) as pool:
         pool.map(fn, tasks)
 

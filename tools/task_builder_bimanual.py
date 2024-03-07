@@ -43,6 +43,8 @@ from yarr.utils.video_utils import TaskRecorder
 from pyrep.objects.dummy import Dummy
 from pyrep.objects.vision_sensor import VisionSensor
 
+from rich.logging import RichHandler
+
 
 CURRENT_DIR = dirname(abspath(__file__))
 
@@ -337,6 +339,10 @@ def get_all_available_tasks():
 
 
 if __name__ == '__main__':
+
+
+
+    logging.basicConfig(level=logging.DEBUG, handlers=[RichHandler()])
 
 
     setup_list_completer()

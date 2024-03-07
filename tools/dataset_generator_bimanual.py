@@ -78,8 +78,7 @@ def save_demo(demo, example_path, variation):
         pickle.dump(variation, f)
 
 
-
-def run_all_variations(tasks, headless, save_path, episodes_per_task, variations):
+def run_all_variations(task_name, headless, save_path, episodes_per_task, variations):
     """Each thread will choose one task and variation, and then gather
     all the episodes_per_task for that variation."""
 
@@ -88,9 +87,11 @@ def run_all_variations(tasks, headless, save_path, episodes_per_task, variations
         
     from rich.logging import RichHandler
     logging.basicConfig(level=logging.INFO, handlers=[RichHandler()])
+    logging.root.name = task_name
 
-    tasks = [tasks]
-    print(tasks)
+    logging.info("Collecting data for %s", task_name)
+
+    tasks = [task_file_to_task_class(task_name, True)]
 
     img_size = list(map(int, IMAGE_SIZE))
     obs_config = ObservationConfig()
@@ -205,13 +206,14 @@ def main(save_path, tasks, episodes_per_task, all_variations, variations, headle
     if not tasks:
         logging.error("No tasks selected!")
 
-    tasks = [task_file_to_task_class(t, True) for t in tasks]
 
     os.makedirs(save_path, exist_ok=True)
 
     if not all_variations:
         logging.error("Variations not supported")
         sys.exit(-1)
+
+    logging.debug("Selected tasks %s", tasks)
 
     fn = partial(run_all_variations, headless=headless, save_path=save_path, episodes_per_task=episodes_per_task, variations=variations)
     with ctx.Pool(processes=4) as pool:

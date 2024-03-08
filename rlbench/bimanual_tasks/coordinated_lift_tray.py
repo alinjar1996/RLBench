@@ -31,7 +31,8 @@ class CoordinatedLiftTray(BimanualTask):
     def init_task(self) -> None:
         self.item = Shape('item')
         self.tray = Shape('tray')
-        #self.register_graspable_objects([self.tray])
+
+        self.register_graspable_objects([self.item])
 
         self.waypoint_mapping = defaultdict(lambda: 'left')
         for i in range(0, 7, 2):
@@ -48,7 +49,7 @@ class CoordinatedLiftTray(BimanualTask):
         #tray_visual = Shape('tray_visual')
         #print(self.item.get_position())
         #tray_visual.sample(self.item, min_distance=0.1, ignore_collisions=True)
-        self.item.set_position([0.0, 0.0, 0.1], relative_to=self.tray, reset_dynamics=False)
+        self.item.set_position([0.0, 0.0, 0.001], relative_to=self.tray, reset_dynamics=False)
         #print(self.item.get_position())
 
         self.register_success_conditions([

@@ -160,7 +160,7 @@ class Scene(object):
                 self.task.validate()
                 break
             except (BoundaryError, WaypointError) as e:
-                logging.error('error when checking waypoints %s', e)
+                logging.error('Error when checking waypoints. Exception is: %s', e)
                 self.task.cleanup_()
                 self.task.restore_state(self._initial_task_state)
                 attempts += 1
@@ -498,15 +498,15 @@ class Scene(object):
                     elif self.robot.left_arm.check_arm_collision(s):
                         colliding_shapes.append(s)
                 
-                logging.info("got list of colliding objects: %s", colliding_shapes)
+                logging.debug("got list of colliding objects: %s", ", ".join([s.get_name()  for s in colliding_shapes]))
                 
                 [s.set_collidable(False) for s in colliding_shapes]
                 try:
                     right_path = right_point.get_path()
                     left_path = left_point.get_path()
                 except ConfigurationPathError as e:
-                    logging.error("unable to get path %s", e)                    
-                    raise DemoError(f'Could not get a path for waypoint {right_point.name}.') from e
+                    logging.error("Unable to get path %s", e)
+                    raise DemoError(f'Could not get a path for waypoint {right_point.name} or {left_point.name}.', task=self.task) from e
                 finally:
                     [s.set_collidable(True) for s in colliding_shapes]
 

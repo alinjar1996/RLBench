@@ -114,7 +114,7 @@ class BimanualRobot(Robot):
             return [self.right_arm, self.left_arm]
 
     def actutate_gripper(self, amount: float, velocity: float, name: str ='both'):
-        logging.info("actuating gripper for %s", name)
+        logging.debug("actuating gripper for %s", name)
         if 'right' in name:
             return self.right_gripper.actuate(amount, velocity)
         if 'left' in name:
@@ -128,7 +128,7 @@ class BimanualRobot(Robot):
             return True
 
     def grasp(self, obj: Object, name: str = None):
-        logging.info("grasping with %s", name)
+        logging.debug("grasping with %s", name)
         if 'right' in name:
             return self.right_gripper.grasp(obj)
         if 'left' in name:

@@ -134,13 +134,28 @@ class BimanualRobot(Robot):
     def grasp(self, obj: Object, name: str = None):
         logging.debug("grasping with %s", name)
         if 'right' in name:
-            return self.right_gripper.grasp(obj)
+            if obj in self.left_gripper.get_grasped_objects():
+                logging.warning("Object %s is already grasped by left gripper", obj.get_name())
+                return False
+            else:
+                return self.right_gripper.grasp(obj)
         if 'left' in name:
-            return self.left_gripper.grasp(obj)
+            if obj in self.right_gripper.get_grasped_objects():
+                logging.warning("Object %s is already grasped by right gripper", obj.get_name())
+                return False
+            else:
+                return self.left_gripper.grasp(obj)
         if 'both' in name:
-            right_detected = self.right_gripper.grasp(obj)
-            left_detected = self.left_gripper.grasp(obj)
-            return right_detected and left_detected
+            # object can be only attached to one robot
+            if  obj in self.left_gripper.get_grasped_objects():
+                right_detected = False
+            else:
+                right_detected = self.right_gripper.grasp(obj)
+            if obj in self.right_gripper.get_grasped_objects():
+                left_detected = False
+            else:
+                left_detected = self.left_gripper.grasp(obj)
+            return right_detected or left_detected
 
 
     @Robot.is_bimanual.getter

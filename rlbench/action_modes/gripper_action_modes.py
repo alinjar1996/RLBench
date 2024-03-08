@@ -306,21 +306,28 @@ class BimanualDiscrete(Discrete):
             if not self._detach_before_open:
                 self._actuate(scene, action)
 
+
         if right_current_ee != right_action:
             if right_action == 0.0 and self._attach_grasped_objects:
                 # If gripper close action, the check for grasp.
+                left_grasped_objects = scene.robot.left_gripper.get_grasped_objects()
                 for g_obj in scene.task.get_graspable_objects():
-                    logging.warning("..todo:: check distance to gripper")
-                    scene.robot.right_gripper.grasp(g_obj)
+                    if g_obj in left_grasped_objects:
+                        logging.warning("Object with name %s is already grasped by left robot", g_obj.get_name())
+                    else:
+                        scene.robot.right_gripper.grasp(g_obj)
             else:
                 # If gripper open action, the check for un-grasp.
                 scene.robot.right_gripper.release()
         if left_current_ee != left_action:
             if left_action == 0.0 and self._attach_grasped_objects:
-                # If gripper close action, the check for grasp.
+                right_grasped_objects = scene.robot.right_gripper.get_grasped_objects()
+                # If gripper close action, the check for grasp.                
                 for g_obj in scene.task.get_graspable_objects():
-                    logging.warning("..todo:: check distance to gripper")
-                    scene.robot.left_gripper.grasp(g_obj)
+                    if g_obj in right_grasped_objects:
+                        logging.warning("Object with name %s is already grasped by right robot", g_obj.get_name())
+                    else:
+                        scene.robot.left_gripper.grasp(g_obj)
             else:
                 # If gripper open action, the check for un-grasp.
                 scene.robot.left_gripper.release()

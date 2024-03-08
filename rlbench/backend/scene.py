@@ -523,13 +523,15 @@ class Scene(object):
                     if not right_done and right_path.step():                
                         right_point.end_of_path()
                         right_path.clear_visualization()
-                        self._handle_extensions_strings(right_ext, do_record)
+                        for ext in right_ext.split(";"):
+                            self._handle_extensions_strings(ext.strip(), do_record)
                         right_done = True
 
                     if not left_done and left_path.step():
                         left_point.end_of_path()
                         left_path.clear_visualization()
-                        self._handle_extensions_strings(left_ext, do_record)
+                        for ext in left_ext.split(";"):
+                            self._handle_extensions_strings(ext.strip(), do_record)
                         left_done = True
 
                     self.step()

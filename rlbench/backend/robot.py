@@ -81,6 +81,10 @@ class BimanualRobot(Robot):
         self.left_arm = left_arm
         self.left_gripper = left_gripper
 
+    def colorize_gripper(self):
+        self.right_gripper.colorize([0, 0.8, 0])
+        self.left_gripper.colorize([0.8, 0, 0])
+
     def release_gripper(self, name: str = 'both'):
         if 'both' in name:
             self.right_gripper.release()

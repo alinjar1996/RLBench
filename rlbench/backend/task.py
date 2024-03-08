@@ -324,6 +324,7 @@ class Task(object):
     def cleanup_(self) -> None:
         for cond in self._success_conditions + self._fail_conditions:
             cond.reset()
+                
         self._waypoints = None
         self.cleanup()
 
@@ -347,11 +348,9 @@ class Task(object):
     def restore_state(self, state: Tuple[bytes, int]) -> None:
         objs = self.get_base().get_objects_in_tree(exclude_base=False)
         if len(objs) != state[1]:
-            if self.name not in ['empty_container']:
-                #raise RuntimeError(
-                logging.error(
-                    'Expected to be resetting %d objects, but there were %d.' %
-                    (state[1], len(objs)))
+            if self.name not in ['empty_container']:               
+                logging.error('Expected to be resetting %d objects, but there were %d.', state[1], len(objs))
+                raise RuntimeError("Insufficient number of objects in the scene. Maybe an object is still grasped. Please check the task!")
         self.pyrep.set_configuration_tree(state[0])
 
     #####################

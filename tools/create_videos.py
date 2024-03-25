@@ -45,8 +45,9 @@ def get_bimanual_tasks():
 
 @click.command()
 @choice_option('--bimanual-task-files', type=click.Choice(sorted(get_bimanual_tasks())), multiple=True)
-@click.option('--add-task-description/--no-task-description', default=True)
-def render_videos_for_task(bimanual_task_files, add_task_description):
+@click.option('--add-task-description/--no-task-description', default=False)
+@click.option('--add-gripper-color/--no-gripper-color', default=False)
+def render_videos_for_task(bimanual_task_files, add_task_description, add_gripper_color):
 
     CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -56,6 +57,9 @@ def render_videos_for_task(bimanual_task_files, add_task_description):
     pr.step_ui()
 
     robot = BimanualRobot(PandaRight(), PandaGripperRight(), PandaLeft(), PandaGripperLeft())
+
+    if add_gripper_color:
+        robot.colorize_gripper()
 
     cam_config = CameraConfig(rgb=True, depth=False, mask=False,
                               render_mode=RenderMode.OPENGL3)

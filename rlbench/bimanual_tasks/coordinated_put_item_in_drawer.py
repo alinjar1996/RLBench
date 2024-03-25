@@ -18,12 +18,12 @@ class CoordinatedPutItemInDrawer(BimanualTask):
                          for opt in self._options]
         self._joints = [Joint('drawer_joint_%s' % opt)
                         for opt in self._options]
-        self._waypoint1 = Dummy('waypoint2')
+        self._waypoint1 = Dummy('waypoint1')
         self._item = Shape('item')
         self.register_graspable_objects([self._item])
 
         self.waypoint_mapping = defaultdict(lambda: 'right')
-        self.waypoint_mapping.update({'waypoint0': 'left', 'waypoint1': 'left', 'waypoint2': 'left', 'waypoint3': 'left', 'waypoint4': 'left'})
+        self.waypoint_mapping.update({'waypoint0': 'left', 'waypoint1': 'left', 'waypoint2': 'left'})
 
 
     def init_episode(self, index) -> List[str]:

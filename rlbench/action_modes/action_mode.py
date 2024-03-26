@@ -150,7 +150,7 @@ class BimanualJointPositionActionMode(ActionMode):
         self.arm_action_mode.action_pre_step(scene, arm_action)
         self.gripper_action_mode.action_pre_step(scene, ee_action)
 
-        scene.step()
+        self.arm_action_mode.action_step(scene)
 
         self.arm_action_mode.action_post_step(scene, arm_action)
         self.gripper_action_mode.action_post_step(scene, ee_action)

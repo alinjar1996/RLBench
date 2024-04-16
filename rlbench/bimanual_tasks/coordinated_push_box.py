@@ -36,4 +36,5 @@ class CoordinatedPushBox(BimanualTask):
         return 1
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
-        return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]
+        angle = np.deg2rad(10)
+        return [0, 0, - angle], [0, 0, angle]

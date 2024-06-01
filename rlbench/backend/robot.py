@@ -85,6 +85,20 @@ class BimanualRobot(Robot):
         self.right_gripper.colorize([0, 0.8, 0])
         self.left_gripper.colorize([0.8, 0, 0])
 
+
+    def hide(self, name: str = "both"):
+        if "both" in name:
+            self.right_arm.hide()
+            self.right_gripper.hide()
+            self.left_arm.hide()
+            self.left_gripper.hide()
+        elif "right" in name:
+            self.right_arm.hide()
+            self.right_gripper.hide()
+        elif "left" in name:
+            self.left_arm.hide()
+            self.left_gripper.hide()
+
     def release_gripper(self, name: str = 'both'):
         if 'both' in name:
             self.right_gripper.release()

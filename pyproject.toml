@@ -20,6 +20,8 @@ python = ">=3.8,<4.0"
 numpy = "^1.23.3"
 Pillow = "^9.2.0"
 pyquaternion = "^0.9.9"
+click-prompt = "^0.5.1"
+rich-click = "^1.8.3"
 
 [tool.poetry.dev-dependencies]
 toml = "^0.10.2"

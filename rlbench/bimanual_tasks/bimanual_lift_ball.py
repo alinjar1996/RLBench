@@ -26,7 +26,7 @@ class LiftedCondition(Condition):
         return pos[2] >= self.min_height, False
 
 
-class CoordinatedLiftBall(BimanualTask):
+class BimanualLiftBall(BimanualTask):
 
     def init_task(self) -> None:
         self.ball = Shape('ball')

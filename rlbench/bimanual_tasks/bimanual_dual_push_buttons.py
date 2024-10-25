@@ -49,7 +49,7 @@ def print_permutations(color_permutations):
         if ((i + 1) % 16 == 0): print('')
 
 
-class DualPushButtons(BimanualTask):
+class BimanualDualPushButtons(BimanualTask):
 
 
 

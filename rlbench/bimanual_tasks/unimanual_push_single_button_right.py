@@ -41,7 +41,7 @@ colors = [
 color_permutations = list(itertools.permutations(colors, 3))
 
 
-class BimanualPushSingleButton(BimanualTask):
+class UnimanualPushSingleButtonRight(BimanualTask):
 
 
     def init_task(self) -> None:

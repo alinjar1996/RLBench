@@ -23,7 +23,7 @@ class LiftedCondition(Condition):
         pos = self.item.get_position()
         return pos[2] >= self.min_height, False
 
-class HandoverItemEasy(BimanualTask):
+class BimanualHandoverItemEasy(BimanualTask):
 
     def init_task(self) -> None:
 

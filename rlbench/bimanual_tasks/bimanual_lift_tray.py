@@ -26,7 +26,7 @@ class LiftedCondition(Condition):
         return pos[2] >= self.min_height, False
 
 
-class CoordinatedLiftTray(BimanualTask):
+class BimanualLiftTray(BimanualTask):
 
     def init_task(self) -> None:
         self.item = Shape('item')
@@ -66,7 +66,7 @@ class CoordinatedLiftTray(BimanualTask):
         return 1 #len(self._options)
 
     def boundary_root(self) -> Object:
-        return Dummy('coordinated_lift_tray')
+        return Dummy('bimanual_lift_tray')
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, - np.pi / 8], [0, 0, np.pi / 8]

@@ -9,7 +9,7 @@ from rlbench.backend.task import BimanualTask
 from collections import defaultdict
 from rlbench.backend.spawn_boundary import SpawnBoundary
 
-class CoordinatedPutBottleInFridge(BimanualTask):
+class BimanualPutBottleInFridge(BimanualTask):
 
     def init_task(self) -> None:
         bottle = Shape('bottle')

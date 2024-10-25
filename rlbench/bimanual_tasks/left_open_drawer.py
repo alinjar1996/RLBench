@@ -25,6 +25,12 @@ class LeftOpenDrawer(BimanualTask):
 
         self._variation_index = index
 
+        right_tcp = Dummy('Panda_rightArm_tip')
+
+        Dummy('waypoint3').set_position(position=(0,0,0),relative_to=right_tcp)
+        Dummy('waypoint3').set_orientation(orientation=(0,0,0), relative_to=right_tcp)
+    
+
         option = self._options[index]
         self._waypoint1.set_position(self._anchors[index].get_position())
         self.register_success_conditions(

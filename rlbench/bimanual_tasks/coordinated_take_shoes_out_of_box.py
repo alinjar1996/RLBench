@@ -21,7 +21,7 @@ class CoordinatedTakeShoesOutOfBox(BimanualTask):
             NothingGrasped(self.robot.left_gripper)])
         
         self.waypoint_mapping = defaultdict(lambda: 'right')
-        for i in range(4):
+        for i in range(1,5):
             self.waypoint_mapping[f'waypoint{i}'] = 'left'
 
     def init_episode(self, index: int) -> List[str]:

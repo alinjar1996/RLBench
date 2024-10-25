@@ -8,7 +8,7 @@ from rlbench.backend.task import Task
 from rlbench.backend.conditions import DetectedCondition, NothingGrasped
 from rlbench.backend.task import BimanualTask
 
-class CoordinatedTakeTrayOutOfOven(BimanualTask):
+class BimanualTakeTrayOutOfOven(BimanualTask):
 
     def init_task(self) -> None:
         success_detector = ProximitySensor('success')

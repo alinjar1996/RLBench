@@ -10,7 +10,7 @@ from rlbench.backend.conditions import DetectedCondition
 from rlbench.backend.task import Task
 from rlbench.backend.task import BimanualTask
 
-class CoordinatedPushBox(BimanualTask):
+class BimanualPushBox(BimanualTask):
 
     def init_task(self) -> None:
 

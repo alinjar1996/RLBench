@@ -15,6 +15,8 @@ from rlbench.backend.conditions import Condition
 from pyrep.objects.proximity_sensor import ProximitySensor
 from rlbench.backend.spawn_boundary import SpawnBoundary
 
+from pyrep.const import PrimitiveShape
+
 class LiftedCondition(Condition):
 
     def __init__(self, item: Shape, min_height: float):
@@ -31,6 +33,18 @@ class BimanualLiftTray(BimanualTask):
     def init_task(self) -> None:
         self.item = Shape('item')
         self.tray = Shape('tray')
+        
+        self.obstacle = None
+        # Add a new obstacle in the task initialization
+        self.obstacle = Shape.create(
+            type=PrimitiveShape.CUBOID,
+            size=[0.25, 0.25, 0.5],
+            color=[1.0, 0.0, 0.0],  # Red
+            position=[0.0, 0.0, 1.0],
+            mass=600.0,
+            respondable=True,
+            renderable=True,
+        )
 
         self.register_graspable_objects([self.item])
 
@@ -46,6 +60,7 @@ class BimanualLiftTray(BimanualTask):
         right_sensor = ProximitySensor('Panda_rightArm_gripper_attachProxSensor')
         left_sensor = ProximitySensor('Panda_leftArm_gripper_attachProxSensor')
 
+        
         #tray_visual = Shape('tray_visual')
         #print(self.item.get_position())
         #tray_visual.sample(self.item, min_distance=0.1, ignore_collisions=True)

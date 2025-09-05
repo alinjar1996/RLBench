@@ -39,10 +39,10 @@ class BimanualLiftBall(BimanualTask):
         # Add a new obstacle in the task initialization
         self.obstacle = Shape.create(
             type=PrimitiveShape.CUBOID,
-            size=[0.25, 0.25, 0.5],
+            size=[0.1, 0.3, 0.5],
             color=[1.0, 0.0, 0.0],  # Red
-            position=[0.0, 0.0, 1.0],
-            mass=600.0,
+            position=[0.0, 0.3, 1.0],
+            mass=300.0,
             respondable=True,
             renderable=True,
         )
@@ -58,8 +58,6 @@ class BimanualLiftBall(BimanualTask):
         print('Table Pose' ,self.table.get_pose())
         print('Table Mass' ,self.table.get_mass())
         print("Table Bounding Box", self.table.get_bounding_box())
-        
-        
         
 
         # print('Shape', self.ball.get)

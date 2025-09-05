@@ -22,7 +22,19 @@ class LiftedCondition(Condition):
     def __init__(self, item: Shape):
         self.item = item
         # self.min_height = min_height
-        self.goal_pos = np.array([0.0, 0.0, 1.0]) # The target goal position
+        # self.goal_pos = np.array([0.0, 0.3, 0.0]) # The target goal position
+
+        self.goal_pos = self.item.get_position()+np.array([0.0, 0.0, 0.5])
+
+        # Create a small, red, non-colliding sphere to visualize the goal position
+        self.visual_marker = Shape.create(
+            type=PrimitiveShape.SPHERE,
+            size=[0.1, 0.1, 0.1],
+            color=[1.0, 0.0, 0.0],  # Red color
+            position=self.goal_pos,
+            respondable=False,  # Make it non-colliding
+            mass=0.0
+        )
 
 
     def condition_met(self):
@@ -38,7 +50,7 @@ class LiftedCondition(Condition):
         distance_to_goal = np.linalg.norm(current_pos - self.goal_pos)
 
         print("distance_to_goal", distance_to_goal)
-        
+
         # Check if the item has been lifted above the minimum height threshold
         #height_reached = current_pos[2] >= self.min_height
 
